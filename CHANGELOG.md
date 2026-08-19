@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- First recorded comparison (`experiments/RESULTS-2026-08-19.md`, 7 records): on four oracle debugging tasks, single-path matched ground truth on all four; `multipath-g0` tied at 4.9x tokens and 5x invocations. Recursive and full-state-leak arms did not run — `state_0` was `DEGENERATE_POPULATION` and the method's own rule stopped it at G0. No significance claimed; scope is single-root-cause debugging with an oracle.
+
 - Claude Code host mapping: `Agent` / `subagent_type: "general-purpose"`, child-written audit files, `fork` and `Explore` prohibited for paths, nesting recorded as prompt-only, optional worktree isolation. One `SKILL.md` retained; the tree installs unmodified.
 - Shared procedure made host-neutral: tool-call discipline, scratch directory, todo scaffold, Generation-0 spawn parameters, path prompt template, and the recursive-spawn rule no longer assume Grok primitives. Host specifics live only in the per-host subsections.
 - Skill procedure now always validates with `--source` and `--run-dir`, requires `{statement, source_span}` invariants, a G0 `paths` roster with `g{t}p{k}` ids, `recovered_under`, and `error_correlation_risk`.

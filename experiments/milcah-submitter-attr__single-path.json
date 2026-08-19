@@ -1,0 +1,34 @@
+{
+  "schema_version": "0.2.0",
+  "task_id": "milcah-submitter-attr",
+  "source_hash": "e55c209991f3496e",
+  "condition": "single-path",
+  "model": "claude-opus-5[1m]",
+  "model_mix": [
+    "claude-opus-5[1m]"
+  ],
+  "population_size": 1,
+  "generations": 1,
+  "independence": "reduced",
+  "error_correlation_risk": "high",
+  "constraint_view_used": false,
+  "blind_view_used": false,
+  "project_mutated": false,
+  "artifact_dir": "runs/milcah-submitter-attr/single-path",
+  "final_answer": "Gets the mechanism exactly right and the fix is equivalent to the ground truth - a module-level builder plus a per-submitter self._metadata gives both transports the metadata, achieving what putting the method on the shared _Submitter base would.",
+  "ground_truth": "_job_metadata was added to HoglahExtractor, but the call sites that actually submit live on the submitter classes (_StoreSubmitter and _MessagingSubmitter), neither of which had the method. Every specialist call therefore raised AttributeError, which the provider boundary converted into terminal_reason='blocked' with no model calls at all. The unit test passed because it exercised the extractor's helper rather than the submitters' call path - it tested the object that has the method instead of the ones that call it. The fix is to put _job_metadata on the shared _Submitter base so both transports have it.",
+  "matches_ground_truth": true,
+  "admissible_set_contains_ground_truth": null,
+  "completion_status": "SETTLED_BY_VERIFICATION",
+  "graded_by": {
+    "who": "independent LLM grader agent, given ground truth and candidate only",
+    "blind_to_condition": true
+  },
+  "false_attractor_warnings": [],
+  "cost": {
+    "tokens": 51519,
+    "path_invocations": 1,
+    "wall_clock_s": 2166.6
+  },
+  "notes": "Difficulty screen. Grader: 0 notable error(s); calibration well-calibrated. Snapshot is git-archive of the parent of fix commit 356f8ce; fix unreachable, no .git, no answer leakage, no contaminating installed dependency. Multipath arms not run: single-path already matched ground truth, so this task cannot discriminate between conditions on accuracy."
+}
