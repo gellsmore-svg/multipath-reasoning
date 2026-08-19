@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+- Claude Code host mapping: `Agent` / `subagent_type: "general-purpose"`, child-written audit files, `fork` and `Explore` prohibited for paths, nesting recorded as prompt-only, optional worktree isolation. One `SKILL.md` retained; the tree installs unmodified.
+- Shared procedure made host-neutral: tool-call discipline, scratch directory, todo scaffold, Generation-0 spawn parameters, path prompt template, and the recursive-spawn rule no longer assume Grok primitives. Host specifics live only in the per-host subsections.
 - Skill procedure now always validates with `--source` and `--run-dir`, requires `{statement, source_span}` invariants, a G0 `paths` roster with `g{t}p{k}` ids, `recovered_under`, and `error_correlation_risk`.
 - Closing blind audit required before `STABLE_HIGH_CONFIDENCE`.
 - Generation tree fingerprint written to `tree-before.txt` / `tree-after.txt`.
