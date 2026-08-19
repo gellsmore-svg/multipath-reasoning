@@ -1,6 +1,6 @@
 # Specification (v0.1.0)
 
-Platform-independent process specification. The agent-facing procedure is [`skill/SKILL.md`](../skill/SKILL.md). Field meanings: [`skill/references/architecture.md`](../skill/references/architecture.md). Scores: [`skill/references/scoring.md`](../skill/references/scoring.md).
+Platform-independent process specification. The agent-facing procedure is [`skill/SKILL.md`](../skill/SKILL.md). Field meanings: [`skill/references/architecture.md`](../skill/references/architecture.md). Scores: [`skill/references/scoring.md`](../skill/references/scoring.md). Wiring, host mapping, and specified-vs-implemented: [`technical-description.md`](technical-description.md).
 
 This document does not replace the skill. It states the invariants a host implementation must keep.
 

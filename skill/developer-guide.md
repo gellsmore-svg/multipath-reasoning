@@ -782,34 +782,14 @@ The quality of path independence should be recorded because it affects the meani
 
 ## 33. Multipath, Deborah, and Hoglah
 
-Multipath Reasoning should remain a standalone reasoning specification.
+Multipath Reasoning is a standalone reasoning specification. It must not require Deborah or Hoglah.
 
-A useful architectural division is:
+Inspected repos (see `docs/system-landscape.md`) do **not** support a current stack “Multipath → Deborah runtime → Hoglah execution.”
 
-```
-Multipath Reasoning
-    reasoning grammar and semantics
-            |
-            v
-Deborah
-    general orchestration/runtime
-            |
-            v
-Hoglah
-    execution mechanics
-```
+- **Deborah** is a human-readable **process language** (Cairn documents). Its README states it is not a device for turning stochastic steps into pure functions. A future `.cairn.md` description of a Multipath run would be optional.
+- **Hoglah** is a local-first **job queue** for LLM inference. A future orchestrator could enqueue path jobs there. That would be execution, not Multipath semantics.
 
-**Multipath owns** reasoning semantics, independent reconstruction, admissibility, convergence rules, false-attractor handling, recursive stabilization, reconstructability, and paired reasoning semantics.
-
-**Deborah may own** general orchestration primitives such as sample, branch, preserve, reseed, select, converge, verify, recurse, and terminate.
-
-Multipath should not require Deborah to exist.
-
-**Hoglah may own** execution capabilities such as job queues, dependency graphs, barriers, quorum completion, retry, cancellation, job lifecycle, and partial population failure.
-
-For example, a population of fifteen paths might continue with fourteen successful results if the configured quorum allows it.
-
-That is an execution concern rather than a reasoning principle.
+Do not treat guessed orchestration primitives (`sample`, `branch`, `reseed`, …) as present in Deborah unless Deborah’s own SPEC says so.
 
 ## 34. Relationship to the research that inspired it
 

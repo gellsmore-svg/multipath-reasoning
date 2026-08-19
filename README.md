@@ -46,7 +46,7 @@ Later paths are no longer independent. If C0 is wrong, recursion can raise appar
 
 **Coherence is not fidelity.** A population can agree strongly and still be wrong.
 
-Multipath therefore does **not** feed a single prose answer to every later path. It also does not feed the full parent `state.json` to source-heavy paths. Those paths get a **constraint view**: SOURCE + constraints + open questions, without conserved findings, scores, or stability status. That is the reconstructability test.
+Multipath therefore does **not** feed a single prose answer to every later path. It also does not feed the full parent `state.json` to source-heavy paths. Those paths get a **constraint view**: SOURCE + constraints + open questions, without conserved findings, scores, or stability status. That view can still name prior *hypotheses* (disagreements, minority findings). It is a reconstructability *probe*, not a blind SOURCE-only test. See [docs/technical-description.md](docs/technical-description.md).
 
 ## Core ideas (short)
 
@@ -122,6 +122,7 @@ python3 skill/scripts/project_state_view.py path/to/state.json --view constraint
 
 ```
 skill/                  Canonical agent skill (SKILL.md + references + scripts)
+docs/technical-description.md  How the loop is wired (specified vs implemented)
 docs/origins.md         How the method arose (speculative research → engineering)
 docs/system-landscape.md  Actual relationships to other repos (inspected, not invented)
 docs/specification.md   Platform-independent process specification
@@ -143,8 +144,10 @@ Details: [docs/system-landscape.md](docs/system-landscape.md).
 
 ## Documentation
 
+- [Technical description](docs/technical-description.md) — how the loop is wired; specified vs implemented
 - [Developer guide](skill/developer-guide.md) — full method for practitioners
 - [Specification](docs/specification.md)
+- [Installing the skill](docs/installing-skills.md)
 - [Origins](docs/origins.md)
 - [Experiments](docs/experiments.md)
 
