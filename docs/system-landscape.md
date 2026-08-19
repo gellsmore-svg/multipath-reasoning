@@ -21,8 +21,8 @@ A guessed layering (Multipath → Deborah runtime → Hoglah execution) appears 
 | **Repo** | [gellsmore-svg/Deborah](https://github.com/gellsmore-svg/Deborah) (local `domains/Deborah`) |
 | **Purpose** | Human-readable **process language** (Cairn document format) for framing cross-LLM work: intent, capabilities, bounds, residual uncertainty |
 | **What the README says it is not** | A device for turning stochastic model steps into pure functions |
-| **Relationship to Multipath** | **None in code.** Conceptual: a Multipath run *could* later be described as a `.cairn.md` process. Deborah must not own the Multipath concept. Multipath must not require Deborah. |
-| **Prompt guess vs repo** | The guess that Deborah is a general orchestration/runtime for recursive stochastic processes **does not match** the current Deborah README/SPEC role (grammar, conformance, render profiles, a PLAN interpreter). Possible future primitives (`sample`, `branch`, `reseed`, …) are not claimed as present. |
+| **Relationship to Multipath** | **None in code.** Deborah SPEC v0.13 can *describe* the process class (`SAMPLE`, `VIEW`, `MERGE [RULE: admissibility]`). Worked example: [Deborah `examples/independent-reconstruction.cairn.md`](https://github.com/gellsmore-svg/Deborah/blob/main/examples/independent-reconstruction.cairn.md). Deborah does not execute isolated sampling; those constructs are extension-profile (a core runtime may skip them). Deborah must not own the Multipath concept. Multipath must not require Deborah. |
+| **Prompt guess vs repo** | Deborah is still a process *language*, not a Multipath executor. `SAMPLE` / `VIEW` name independent reconstruction; they are not a runtime. |
 
 Cairn the *language* still uses `.cairn.md` fences. The old `cairn-lang` package is a deprecation shim after a split into Deborah (language) + [Huldah](https://github.com/gellsmore-svg/Huldah) (human-systems analysis).
 
@@ -103,7 +103,7 @@ Inspected via GitHub descriptions and/or local READMEs. **No Multipath dependenc
 
 ## What does *not* belong in this repository
 
-- Deborah grammar, parser, or `.cairn.md` runtime
+- Deborah grammar, parser, or `.cairn.md` runtime (a description of this loop may live in Deborah examples; this repo does not import Deborah)
 - Hoglah workers, Ollama adapters, or queue storage
 - Tirzah/Mahalath data stores
 - Substrate physics claims, notebooks, or validation ledgers (link out)
