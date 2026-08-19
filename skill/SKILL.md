@@ -84,7 +84,6 @@ Capability mode — generation paths **must** be able to write `path-k.md`. On t
 - Research / documentation / decision analysis (no shell needed): `read-write` (can write files; no shell).
 - Software, debugging, or any claim that needs a shell: omit `capability_mode` so the child keeps write + shell.
 - Prompt every path: write **only** to its assigned `output_path`; do not edit project source or any other file; do not list or read sibling `path-*.md` files.
-- After analysis, a single follow-on implementation step may edit the project, using the strongest *admissible* approach — never by averaging five patches.
 
 Do not use the `workflow` tool as a substitute for this skill. Do not pass a `persona` parameter to `spawn_subagent`.
 
@@ -385,7 +384,7 @@ When the task is software, research, documentation, or architecture/decision sup
 
 Where a claim can be cheaply checked, check it. Independent verification outranks model agreement. Multipath consensus is not a substitute for tests, code inspection, logs, or authoritative docs.
 
-If the original task requires a code or document change, implement **after** analysis, from the strongest admissible reconstruction, then verify.
+If the original task requires a code or document change, implement **after** analysis, from the strongest admissible reconstruction, then verify. One follow-on step, one approach — never by averaging N patches into a consensus diff. This applies on every host.
 
 ## Output
 
