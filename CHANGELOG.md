@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 
+- Second recorded run (12 records): with a small local model producing a unanimous-but-wrong population, a same-model parent reproduced the majority vote 4/4 and marked the wrong answer `STABLE_HIGH_CONFIDENCE`; a frontier parent over the same five paths was correct 4/4, including on populations where no path held the right answer. Evidence that the convergence rule is inert without a parent able to verify against source, and that the ceiling is the parent's discrimination rather than N.
 - First recorded comparison (`experiments/RESULTS-2026-08-19.md`, 7 records): on four oracle debugging tasks, single-path matched ground truth on all four; `multipath-g0` tied at 4.9x tokens and 5x invocations. Recursive and full-state-leak arms did not run — `state_0` was `DEGENERATE_POPULATION` and the method's own rule stopped it at G0. No significance claimed; scope is single-root-cause debugging with an oracle.
 
 - Claude Code host mapping: `Agent` / `subagent_type: "general-purpose"`, child-written audit files, `fork` and `Explore` prohibited for paths, nesting recorded as prompt-only, optional worktree isolation. One `SKILL.md` retained; the tree installs unmodified.

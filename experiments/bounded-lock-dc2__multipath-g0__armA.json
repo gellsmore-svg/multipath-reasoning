@@ -1,0 +1,39 @@
+{
+  "schema_version": "0.2.0",
+  "task_id": "bounded-lock-dc2",
+  "source_hash": "94d8037d333c7b70",
+  "condition": "multipath-g0",
+  "model": "gemma4:e2b",
+  "model_mix": [
+    "gemma4:e2b",
+    "gemma4:e2b",
+    "gemma4:e2b",
+    "gemma4:e2b",
+    "gemma4:e2b",
+    "gemma4:e2b"
+  ],
+  "population_size": 5,
+  "generations": 1,
+  "independence": "full",
+  "error_correlation_risk": "high",
+  "constraint_view_used": false,
+  "blind_view_used": false,
+  "project_mutated": false,
+  "artifact_dir": "local/pops/dc2.armA.txt",
+  "final_answer": "CULPRIT=close",
+  "ground_truth": "close() is the only method touching self._conn without holding self._lock, so teardown can free the SQLite connection while a background daemon thread is mid-execute inside the lock-protected mark_result_published, giving a use-after-free in the sqlite3 C extension.",
+  "matches_ground_truth": true,
+  "admissible_set_contains_ground_truth": null,
+  "completion_status": "STABLE_HIGH_CONFIDENCE",
+  "graded_by": {
+    "who": "objective CULPRIT-line match against known fix commit bda0802",
+    "blind_to_condition": true
+  },
+  "false_attractor_warnings": [],
+  "cost": {
+    "tokens": 0,
+    "path_invocations": 6,
+    "wall_clock_s": 50.0
+  },
+  "notes": "Regime: discriminating (majority correct). Population culprits: ['close', 'close', 'close', 'close', 'mark_result_published']. Majority vote: close. Arm A: same weak model as parent. Given SOURCE code + the 5 path answers and the convergence rule 'prefer source-supported over popular'. Bounded snippet task (no agentic tool use), so this isolates reasoning aggregation from tool-use ability. cost.tokens not metered for local inference."
+}
