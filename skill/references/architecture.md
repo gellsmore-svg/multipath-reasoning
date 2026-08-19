@@ -61,7 +61,7 @@ Who writes the file is host-specific:
 - **File-writing hosts (Grok):** the child writes the file; parent waits for a non-empty file.
 - **Return-markdown hosts (Codex and similar):** the child returns markdown; the **parent** writes `path-k.md`. Do not wait for the child to create the file.
 
-Record a `paths` roster on `state.json`: `[{id, role, view, output_file}]`. At generation ≥ 1 the roster is required. `validate_state.py --run-dir` checks that those files exist.
+Record a `paths` roster on `state.json` **every generation**: `[{id, role, view, output_file}]`. Ids are `g{t}p{k}` so G0 and G1 do not collide. At G0 every view is `blind`. `validate_state.py --run-dir` checks that those files exist. Always pass `--source` as well.
 
 ## Admissibility state (`state.json`)
 
@@ -75,9 +75,9 @@ Pass forward an admissibility state, not a canonical answer. It must constrain f
 | `population_size` | N actually launched this generation. Integer ≥ 2. |
 | `independence` | `"full"` or `"reduced"`. Context isolation, not error independence. |
 | `error_correlation_risk` | `"high"` / `"medium"` / `"low"`. Default `high` for same-model homogeneous samples. |
-| `source_invariants` | `{statement, source_span}` objects. `source_span` must be a literal substring of `source.md`. A parent conclusion is a finding, not an invariant. Free-text strings are accepted only when `--source` is not passed. |
-| `paths` | Roster `[{id, role, view, output_file}]`. Required at generation ≥ 1. Ids must match `conserved_findings[].paths`. |
-| `conserved_findings` | Claims independently reconstructed by several paths. Each item: `claim`, `paths` (ids), `support` (`source` / `constraint` / `reconstructed` / `agreement-only`), optional `recovered_under`. Do not treat path-count as proof. |
+| `source_invariants` | `{statement, source_span}` objects only. `source_span` must be a literal substring of `source.md`. A parent conclusion is a finding, not an invariant. Free-text strings are invalid. |
+| `paths` | Roster `[{id, role, view, output_file}]` every generation. Ids `g{t}p{k}`. Must match `conserved_findings[].paths`. |
+| `conserved_findings` | Claims independently reconstructed by several paths. Each item: `claim`, `paths` (ids), `support` (`source` / `constraint` / `reconstructed` / `agreement-only`), `recovered_under`. Do not treat path-count as proof. |
 | `disagreements` | Materially different interpretations. Do not erase for neatness. |
 | `minority_findings` | One- or two-path findings. A minority result may expose a majority assumption. |
 | `uncertainty` | Genuine unresolved uncertainty. |
@@ -92,8 +92,10 @@ Pass forward an admissibility state, not a canonical answer. It must constrain f
 | `stability` | `status` plus claim buckets: `verified_stable_claims`, `reconstructed_stable_claims`, `mixed_stable_claims`, `inherited_stable_claims`, `unstable_claims`. |
 | `recommended_next_action` | `spawn_next_generation`, `stop`, `need_external_evidence`, or `ask_user`, plus a short `reason`. `spawn_next_generation` also needs `next_generation_justification`. |
 | `delta_from_previous` | Required at generation > 0: `{dropped, added, reclassified}`. |
+| `blind_audit` | Required for `STABLE_HIGH_CONFIDENCE`: `{follows_source, output_file, notes}`. One child given only SOURCE + the proposed answer. |
+| `tree_fingerprint` | `{before, after}` from the pre/post generation tree check. If they differ, `project_mutated` must be true. |
 
-Optional: `previous_score` (required at generation > 0), `project_mutated`, `distinct_solutions`, `error_correlation_risk`.
+Optional: `previous_score` (required at generation > 0), `project_mutated`, `distinct_solutions`.
 
 The parent is a **shared ancestor** of every `state.json`. Re-read `source.md` and the previous state from disk before each convergence. Do not treat parent scores as external verification.
 

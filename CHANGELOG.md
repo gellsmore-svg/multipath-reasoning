@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+- Skill procedure now always validates with `--source` and `--run-dir`, requires `{statement, source_span}` invariants, a G0 `paths` roster with `g{t}p{k}` ids, `recovered_under`, and `error_correlation_risk`.
+- Closing blind audit required before `STABLE_HIGH_CONFIDENCE`.
+- Generation tree fingerprint written to `tree-before.txt` / `tree-after.txt`.
+
 ## [0.1.1] — 2026-08-19
 
 - Addressed GitHub issues #1–#23 (process hardening; no recorded task experiments yet).

@@ -121,6 +121,8 @@ SKILL_CONCEPTS = (
     "STRUCTURAL_OK",
     "blind",
     "ask_user",
+    "blind audit",
+    "g0p",
 )
 
 
@@ -198,7 +200,7 @@ def validate_state(
         _err(errors, f"independence must be one of {sorted(INDEPENDENCE)}")
 
     risk = data.get("error_correlation_risk")
-    if risk is not None and risk not in ERROR_CORRELATION:
+    if risk not in ERROR_CORRELATION:
         _err(errors, f"error_correlation_risk must be one of {sorted(ERROR_CORRELATION)}")
 
     if data.get("project_mutated") is True:
@@ -263,7 +265,7 @@ def validate_state(
                         f"conserved_findings[{i}].support={support} requires len(paths) >= 2",
                     )
                 recovered = item.get("recovered_under")
-                if recovered is not None and recovered not in RECOVERED_UNDER:
+                if recovered not in RECOVERED_UNDER:
                     _err(
                         errors,
                         f"conserved_findings[{i}].recovered_under must be "
@@ -273,7 +275,7 @@ def validate_state(
                     support == "reconstructed"
                     and isinstance(gen, int)
                     and gen >= 1
-                    and recovered not in {None, "blind"}
+                    and recovered != "blind"
                 ):
                     _err(
                         errors,
@@ -492,8 +494,8 @@ def validate_state(
                 )
 
     roster = data.get("paths")
-    if isinstance(gen, int) and gen >= 1 and roster is None:
-        _err(errors, "generation >= 1 requires a paths roster [{id, role, view, output_file}]")
+    if roster is None:
+        _err(errors, "paths roster [{id, role, view, output_file}] is required")
     if roster is not None:
         if not isinstance(roster, list):
             _err(errors, "paths must be a list")
@@ -515,6 +517,14 @@ def validate_state(
                     if pid in seen_ids:
                         _err(errors, f"duplicate path id {pid!r}")
                     seen_ids.add(pid)
+                    if isinstance(gen, int) and not pid.startswith(f"g{gen}p"):
+                        _err(
+                            errors,
+                            f"paths[{i}].id {pid!r} must be g{gen}pK "
+                            "(generation-scoped; g0p1 ≠ g1p1)",
+                        )
+                if isinstance(gen, int) and gen == 0 and row.get("view") not in {None, "blind"}:
+                    _err(errors, f"paths[{i}].view must be blind at generation 0")
             if isinstance(gen, int) and gen >= 1:
                 views = {row.get("view") for row in roster if isinstance(row, dict)}
                 if not views & {"blind", "constraint"}:
@@ -553,6 +563,36 @@ def validate_state(
     if isinstance(gen, int) and gen > 0 and "previous_score" not in data:
         _err(errors, "generation > 0 requires previous_score")
 
+    fingerprint = data.get("tree_fingerprint")
+    if fingerprint is not None:
+        if not isinstance(fingerprint, dict):
+            _err(errors, "tree_fingerprint must be an object")
+        else:
+            for k in ("before", "after"):
+                if not isinstance(fingerprint.get(k), str) or not fingerprint[k].strip():
+                    _err(errors, f"tree_fingerprint.{k} must be a non-empty string")
+            if (
+                fingerprint.get("before")
+                and fingerprint.get("after")
+                and fingerprint["before"] != fingerprint["after"]
+                and data.get("project_mutated") is not True
+            ):
+                _err(errors, "tree_fingerprint changed; set project_mutated=true")
+
+    audit = data.get("blind_audit")
+    if audit is not None:
+        if not isinstance(audit, dict):
+            _err(errors, "blind_audit must be an object")
+        else:
+            if not isinstance(audit.get("follows_source"), bool):
+                _err(errors, "blind_audit.follows_source must be a boolean")
+            if not isinstance(audit.get("output_file"), str) or not audit["output_file"].strip():
+                _err(errors, "blind_audit.output_file must be a non-empty string")
+            if audit.get("follows_source") is False and status == "STABLE_HIGH_CONFIDENCE":
+                _err(errors, "blind_audit.follows_source=false cannot claim STABLE_HIGH_CONFIDENCE")
+    elif status == "STABLE_HIGH_CONFIDENCE":
+        _err(errors, "STABLE_HIGH_CONFIDENCE requires a closing blind_audit")
+
     if previous is not None:
         errors.extend(_cross_generation(data, previous))
 
@@ -566,17 +606,13 @@ def _validate_source_invariants(items: Any, source_text: str | None) -> list[str
     source_norm = _norm_ws(source_text) if source_text is not None else None
     for i, item in enumerate(items):
         if isinstance(item, str):
-            if not item.strip():
-                _err(errors, f"source_invariants[{i}] must be a non-empty string")
-            elif source_norm is not None:
-                _err(
-                    errors,
-                    f"source_invariants[{i}] is a free-text string; use "
-                    '{"statement": ..., "source_span": <literal SOURCE substring>}',
-                )
+            _err(
+                errors,
+                f"source_invariants[{i}] must be {{statement, source_span}}, not a free-text string",
+            )
             continue
         if not isinstance(item, dict):
-            _err(errors, f"source_invariants[{i}] must be a string or {{statement, source_span}}")
+            _err(errors, f"source_invariants[{i}] must be {{statement, source_span}}")
             continue
         statement = item.get("statement")
         span = item.get("source_span")
@@ -925,8 +961,23 @@ def self_test(skill_dir: Path) -> int:
     no_span["source_invariants"] = [
         "The root cause is the retry handler (established gen 0)."
     ]
-    if not validate_state(no_span, source_text="Can retries overwrite newer state?"):
-        errors.append("free-text source_invariants with --source should fail")
+    if not validate_state(no_span):
+        errors.append("free-text source_invariants should fail")
+
+    no_risk = fixture_ok()
+    del no_risk["error_correlation_risk"]
+    if not validate_state(no_risk):
+        errors.append("missing error_correlation_risk should fail")
+
+    no_rec = fixture_ok()
+    del no_rec["conserved_findings"][0]["recovered_under"]
+    if not validate_state(no_rec):
+        errors.append("missing recovered_under should fail")
+
+    no_paths = fixture_ok()
+    del no_paths["paths"]
+    if not validate_state(no_paths):
+        errors.append("missing paths roster should fail")
 
     incomplete = {"generation": 0}
     if not validate_state(incomplete):

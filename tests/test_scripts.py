@@ -162,6 +162,33 @@ class ScriptTests(unittest.TestCase):
             self.assertNotEqual(proc.returncode, 0)
             self.assertIn("source_span", proc.stdout)
 
+            state["source_invariants"] = ["Retries overwrite newer state."]
+            state_path.write_text(json.dumps(state), encoding="utf-8")
+            proc = _run(str(SCRIPTS / "validate_state.py"), str(state_path))
+            self.assertNotEqual(proc.returncode, 0)
+            self.assertIn("source_span", proc.stdout.lower() + proc.stderr.lower() or "free-text")
+
+    def test_high_confidence_needs_blind_audit(self) -> None:
+        sys.path.insert(0, str(SCRIPTS))
+        import validate_state  # type: ignore
+
+        state = validate_state.fixture_ok()
+        state["conserved_findings"][0]["support"] = "source"
+        state["stability"]["status"] = "STABLE_HIGH_CONFIDENCE"
+        state["stability"]["verified_stable_claims"] = [
+            "Lost updates correlate with retry paths."
+        ]
+        state["recommended_next_action"] = {"action": "stop", "reason": "verified"}
+        self.assertTrue(
+            any("blind_audit" in e for e in validate_state.validate_state(state))
+        )
+        state["blind_audit"] = {
+            "follows_source": True,
+            "output_file": "blind-audit.md",
+            "notes": "Follows SOURCE.",
+        }
+        self.assertEqual(validate_state.validate_state(state), [])
+
     def test_run_dir_requires_path_files(self) -> None:
         sys.path.insert(0, str(SCRIPTS))
         import validate_state  # type: ignore

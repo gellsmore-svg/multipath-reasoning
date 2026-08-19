@@ -134,9 +134,10 @@ Inline the resolved absolute paths thereafter. Run root: `${scratch_dir}/multipa
 3. Write `source.md` under the run root. Define per-generation files as you go:
 
 - `${run_root}/source.md`
-- `${run_root}/gen-${t}/path-${k}.md` — raw path output (audit)
+- `${run_root}/gen-${t}/path-${k}.md` — raw path output (audit). Path ids are `g{t}p{k}` (so `g0p1` ≠ `g1p1`).
 - `${run_root}/gen-${t}/state.json` — bounded admissibility + scores
 - `${run_root}/gen-${t}/convergence.md` — human-readable convergence notes
+- `${run_root}/gen-${t}/tree-before.txt` / `tree-after.txt` — project-tree fingerprint
 
 4. Open a `todo_write` scaffold (`merge: false`) with ids `setup`, `gen-0`, `converge-0`, then append `gen-N` / `converge-N` / `final-report` as the loop proceeds.
 
@@ -146,7 +147,14 @@ If compaction lands mid-run, rebuild from files on disk (`source.md` + latest `s
 
 Read `references/architecture.md` before the first spawn in a session.
 
-Launch `N` independent paths in one turn. Each prompt is identical except `path_id` and `output_path`.
+Before spawning, fingerprint the project tree and write it to `gen-0/tree-before.txt`:
+
+```bash
+{ git rev-parse HEAD; git status --porcelain; } > "${run_root}/gen-0/tree-before.txt"
+# non-git: find . -printf '%T@ %s %p\n' | sort | sha256sum > "${run_root}/gen-0/tree-before.txt"
+```
+
+Launch `N` independent paths in one turn. Each prompt is identical except `path_id` (`g0p1` … `g0pN`) and `output_path`.
 
 `spawn_subagent` parameters:
 
@@ -192,6 +200,10 @@ Rules:
 
 Persist every path as `path-k.md` (child-written on Grok; parent-written from returned markdown on Codex). A failed path is a missing reconstruction, not a vote for the others. Continue with the survivors if at least two files exist; otherwise status `ABORTED_INSUFFICIENT_PATHS` and stop.
 
+After the generation, write `gen-0/tree-after.txt` with the same command. If it differs from `tree-before.txt`, set `project_mutated: true`, abort, and do not treat the generation as evidence.
+
+Write a `paths` roster on `state.json` even at G0: each row `{id: "g0pK", role: "blind", view: "blind", output_file: "path-K.md"}`. Generation 0 paths see only SOURCE, so their view is `blind`.
+
 Do not let majority opinion influence any generation-0 path. Do not share sibling outputs until this generation is complete.
 
 ## Structured convergence
@@ -200,22 +212,17 @@ The parent evaluates. Do **not** ask “what do most paths agree on?”
 
 The parent is a **shared ancestor** of every `state.json`. Path isolation does not make C_t independent. Re-read `source.md` and the previous `state.json` from disk before each convergence; do not evaluate from recollection. `source_invariants` must be quotes or close paraphrases of SOURCE, not the parent’s G0 conclusion. Inferred constraints belong in `constraints.inferred`, which **blind** and **constraint** views drop. Do not treat parent scores as external verification.
 
-Read every `path-k.md`. Build `C_t` and `S_t`. Write `state.json` and `convergence.md`. Then run:
-
-```bash
-python3 <skill_dir>/scripts/validate_state.py <run_root>/gen-<t>/state.json
-```
-
-If a previous generation exists:
+Read every `path-k.md`. Build `C_t` and `S_t`. Always write `source_invariants` as `{statement, source_span}` objects — never free-text strings. Copy `score` from the previous state into `previous_score` when `generation > 0`. Set `paths` for this generation (`g{t}p{k}`). Set `paired_balance.next_allocation` from `ROLE_SEQUENCE` unless you are deliberately changing the mix. Write `state.json` and `convergence.md`. Then **always** run:
 
 ```bash
 python3 <skill_dir>/scripts/validate_state.py <run_root>/gen-<t>/state.json \
-  --prev <run_root>/gen-<t-1>/state.json \
   --source <run_root>/source.md \
   --run-dir <run_root>/gen-<t>
 ```
 
-`--source` rejects `source_invariants` that are not literal SOURCE spans. `--run-dir` checks that each `paths[].output_file` exists and is non-empty. `--prev` checks warnings were not silently dropped and that confidence-like scores did not rise without a fidelity gain or a recorded warning.
+If a previous generation exists, also pass `--prev <run_root>/gen-<t-1>/state.json`.
+
+`--source` rejects invariants that are not literal SOURCE spans. `--run-dir` checks that each `paths[].output_file` exists and is non-empty. `--prev` checks warnings were not silently dropped and that confidence-like scores did not rise without a fidelity gain or a recorded warning.
 
 If validation fails, repair `state.json` before spawning the next generation.
 
@@ -225,9 +232,9 @@ Required keys: `scripts/validate_state.py` (`REQUIRED_TOP`). Meanings: `referenc
 
 `C_t` must also include these content fields:
 
-- **source_invariants** — `{statement, source_span}` where `source_span` is a literal substring of `source.md`. A G0 conclusion is not an invariant; put it in `conserved_findings`.
-- **paths** — roster `[{id, role, view, output_file}]` for this generation. Required at generation ≥ 1.
-- **conserved_findings** — independently reconstructed by several paths, with path ids and `support`; popularity is not proof. Optional `recovered_under` (`g0` / `blind` / `constraint` / …). `support: reconstructed` at generation ≥ 1 requires `recovered_under: blind`.
+- **source_invariants** — `{statement, source_span}` objects only. `source_span` is a literal substring of `source.md`. A G0 conclusion is not an invariant; put it in `conserved_findings`.
+- **paths** — roster `[{id, role, view, output_file}]` **every generation**, including G0. Ids are `g{t}p{k}`.
+- **conserved_findings** — independently reconstructed by several paths, with path ids, `support`, and `recovered_under` (`g0` / `blind` / `constraint` / …). Popularity is not proof. `support: reconstructed` at generation ≥ 1 requires `recovered_under: blind`.
 - **disagreements** — material differences, preserved
 - **minority_findings** — one- or two-path findings; they may expose a majority assumption
 - **uncertainty** — genuine unresolved uncertainty
@@ -246,7 +253,7 @@ Required keys: `scripts/validate_state.py` (`REQUIRED_TOP`). Meanings: `referenc
 
 **Consensus is not truth.** Population agreement means the conclusion is stable *in this population*. Paths may share a training bias, a mistaken premise, an ambiguous reading, a source omission, or an inherited ancestor. Prefer independently reconstructable, source-supported claims over popular ones.
 
-**False attractor (non-negotiable):** never make one synthesized prose answer the sole ancestor of every later path. Do not forward the full `state.json` (including conserved findings, scores, and stability status) to every later path. Source-heavy paths must receive a **constraint view** with verdict fields stripped. See Recursive generation and `references/failure-modes.md`.
+**False attractor (non-negotiable):** never make one synthesized prose answer the sole ancestor of every later path. Do not forward the full `state.json` (including conserved findings, scores, and stability status) to every later path. At least one later path must receive the **blind** view. Source-heavy paths receive a **constraint view** with verdict fields stripped. See Recursive generation and `references/failure-modes.md`.
 
 ## Scores
 
@@ -323,13 +330,15 @@ Two consecutive stable transitions are a **precondition for `STABLE_HIGH_CONFIDE
 
 Stopping requires all of:
 
-1. score stability (default ~0.02 on normalized numeric dimensions, when numeric scoring is used)
+1. score stability (default ~0.02 on *confidence-like* numeric dimensions only; not `uncertainty` or `diversity`)
 2. relational/structural stability
 3. stable or improving fidelity
 4. stable or improving constraint satisfaction
 5. adequate reconstructability
 6. acceptable provenance
 7. no unresolved false-attractor warning that still needs another reconstruction
+
+Do **not** claim `STABLE_HIGH_CONFIDENCE` until a **closing blind audit** has run: one new child, given only SOURCE plus the proposed final answer (no state, no scores), asked whether the answer follows from SOURCE. Persist as `gen-${t}/blind-audit.md` and record `blind_audit: {follows_source, output_file, notes}`. If it does not follow, drop to `STABLE_WITH_UNCERTAINTY` or continue. This is the only check in the loop not authored by the parent.
 
 Completion status (exactly one):
 
@@ -354,7 +363,7 @@ If the original task requires a code or document change, implement **after** ana
 
 ## Output
 
-Lead with the answer, then **always** emit: `completion_status`, `independence`, generations run, approximate cost (path invocations; tokens/wall-clock if known), and any `false_attractor_warnings`. Do not hide warnings behind `--diagnostics`.
+Lead with the answer, then **always** emit: `completion_status`, `independence`, `error_correlation_risk`, generations run, approximate cost (path invocations; tokens/wall-clock if known), any `false_attractor_warnings`, and `blind_audit.follows_source` when a closing audit ran. Do not hide warnings behind `--diagnostics`.
 
 `--diagnostics` adds only the eight-dimension score vector and extra population mechanics.
 
