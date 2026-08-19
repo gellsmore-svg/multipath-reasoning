@@ -56,7 +56,7 @@ Four paths share an unstated assumption; one minority path names it.
 
 ## Context pollution / common-ancestor bleed
 
-Forwarding raw trajectories (or `resume_from` on a prior path) correlates later paths.
+Forwarding raw trajectories correlates later paths, as does reusing a prior path's context — `resume_from` on Grok, `subagent_type: "fork"` or a follow-up message to a finished path on Claude Code. A fork is the strongest form of this failure: it inherits the parent's entire conversation.
 
 **Repair:** new spawns only; role-specific views of `state.json` (never full state to source-heavy paths); SOURCE verbatim; no sibling files in prompts.
 

@@ -24,7 +24,7 @@ Forbidden: population → winner → copies of winner.
 
 ## Independence
 
-Strongest available mechanism on Grok Build: `spawn_subagent` with a fresh child per path (no `resume_from` on recursive paths).
+Strongest available mechanism is host-specific (`SKILL.md` §Host mechanism): a fresh isolated child per path, never a resumed or forked context. On Grok Build that is `spawn_subagent` without `resume_from`; on Claude Code it is the `Agent` tool with `subagent_type: "general-purpose"`, never `"fork"`.
 
 Full independence requires all of:
 
@@ -44,7 +44,7 @@ Mark `independence: "full"` only when those hold. Sequential in-parent simulatio
 
 Do not create different personalities to simulate independence. Generation-0 prompts differ only by `path_id` and `output_path`.
 
-Subagent nesting depth is 1. The parent spawns every generation. Path prompts must forbid `spawn_subagent`.
+The parent spawns every generation; paths never spawn paths. Whether that is host-enforced varies — Grok caps nesting depth at 1, while a Claude Code `general-purpose` agent *can* spawn further agents, so there the rule is prompt-only. Path prompts must forbid it on every host, and `host_guarantees.nesting` records `enforced` or `prompt` accordingly.
 
 ## Persistent SOURCE
 
@@ -186,7 +186,7 @@ Notice, do not force. Record if they repeatedly help across independent tasks:
 
 ```
 You are one independent reasoning path. You do not see other current-generation paths.
-Do not call spawn_subagent. Do not invent a persona.
+Do not spawn subagents of your own. Do not invent a persona.
 Do not list or read other path-*.md files.
 
 SOURCE (verbatim):

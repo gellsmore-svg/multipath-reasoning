@@ -2,7 +2,7 @@
 
 There is **one** canonical skill: [`skill/SKILL.md`](../skill/SKILL.md) plus `references/`, `scripts/`, and `developer-guide.md`.
 
-Do not fork four divergent copies. Hosts that accept YAML-frontmatter `SKILL.md` should receive this tree. Only the **host mechanism** section is Grok-native; other hosts substitute their isolated child-session API and keep the process.
+Do not fork four divergent copies. Hosts that accept YAML-frontmatter `SKILL.md` should receive this tree unmodified. Only the per-host subsections under **Host mechanism** differ; the rest of the process is host-neutral. A host not listed there substitutes its own isolated child-session API and keeps everything else.
 
 ## Grok Build
 
@@ -22,9 +22,25 @@ If `spawn_subagent` is unavailable, mark `independence: "reduced"` before G0. Ch
 
 ## Claude Code
 
-Copy the same tree into the user or project skill directory Claude Code scans (commonly `~/.claude/skills/multipath-reasoning/` or `<repo>/.claude/skills/multipath-reasoning/`).
+```bash
+cp -a skill ~/.claude/skills/multipath-reasoning        # user-level
+cp -a skill <repo>/.claude/skills/multipath-reasoning   # project-level
+```
 
-Use Claude’s isolated subagent / Task tool analogously: separate contexts, same SOURCE, no sibling answers. If only in-session branching is available, set `independence: reduced`.
+Copy the tree **unmodified**. `when-to-use`, `argument-hint`, and `metadata` are Grok frontmatter keys that Claude Code ignores; leaving them in place keeps `scripts/validate_state.py` identical to this repository, so `--self-test` passes and no fix is stranded downstream. The skill registry is read at session start, so a new install registers on the next session.
+
+Native independence: the `Agent` tool with `subagent_type: "general-purpose"` — a cold context per path, no sibling visibility. **Audit ownership:** the child writes `path-k.md`; the parent waits for a non-empty file and trusts the file over the child's report.
+
+Two traps with no Grok equivalent:
+
+- **Never `subagent_type: "fork"`.** A fork inherits the parent's entire conversation, which is the shared-ancestor correlation the method exists to prevent.
+- **Never `subagent_type: "Explore"`** for generation paths — it has no write tool and cannot produce the audit file.
+
+Nesting is **not** host-enforced: a `general-purpose` agent can spawn further agents, unlike Grok's depth-1 cap. The prohibition is prompt-only; record `host_guarantees.nesting: "prompt"`.
+
+For software tasks, `isolation: "worktree"` gives each path its own git worktree and enforces the tree-fingerprint contract structurally. It does not carry uncommitted changes.
+
+If only in-session branching is available, set `independence: "reduced"`.
 
 ## Codex
 

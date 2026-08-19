@@ -62,7 +62,7 @@ Use the strongest independence the current host provides. Generation-0 paths mus
 
 **Audit persist contract (host-neutral):** every path’s output is persisted as `gen-${t}/path-${k}.md`. Who writes the file is host-specific:
 
-- **File-writing hosts (Grok):** the child writes the file; parent waits for a non-empty file.
+- **File-writing hosts (Grok, Claude Code):** the child writes the file; the parent waits for a non-empty file and trusts the file over the child's report.
 - **Return-markdown hosts (Codex and similar):** the child returns markdown; the **parent** writes `path-k.md`. Do not wait for the child to create the file, and do not grant the child project write for that reason.
 
 ### Grok Build
@@ -94,13 +94,39 @@ Before each generation, record `git rev-parse HEAD` and `git status --porcelain`
 
 Use the host’s isolated child-agent primitive (`multi_agent_v1.spawn_agent` or current equivalent). Children return markdown; **you** write `path-k.md`. Do not instruct Codex children to write audit files. Install the same `skill/` tree under the Codex skills directory.
 
-### Claude Code / Amazon Kiro
+### Claude Code
 
-Same process; substitute that host’s isolated child session. Persist `path-k.md` using whichever ownership the host requires (child write vs parent write). If only in-session branching exists, `independence: "reduced"`.
+Use the **`Agent`** tool with `subagent_type: "general-purpose"`. Each agent starts **cold** in its own context, never sees a sibling, and its tool output does not enter the parent's context. Children write their own `path-k.md`.
+
+Claude Code's default harness guidance discourages spawning agents unasked; invoking this skill **is** the request, and spawning the population is the skill.
+
+Rules:
+
+- Generation-0 paths: identical prompt except `path_id` and `output_path`; separate contexts; no sibling answers; no inherited conclusions.
+- Omit `model` so every path runs on the parent's model. Do not vary the model *within* a generation — that is an uncontrolled confound, not decorrelation. Varying it deliberately *across a run* is a real decorrelator; if you do, record the mix and `error_correlation_risk` accordingly.
+- **Never `subagent_type: "fork"`.** A fork inherits the parent's whole conversation — the shared-ancestor correlation this method exists to prevent. A forked population is `independence: "reduced"` at best.
+- **Never `subagent_type: "Explore"`** for generation paths: it has no write tool, so it cannot satisfy the `path-k.md` contract.
+- Do **not** invent personalities. Recursive roles differ only by which view file they receive.
+- Spawn the population as **parallel `Agent` calls in one assistant response**. They run in the background and notify on completion.
+- Do **not** poll, and never predict a pending path's result. Read a running agent's partial output only through the host's task-output tool; never relay a sibling's conclusions into another path.
+- Prefix `description` with the path id, e.g. `"[g1p3] Dissent reconstruction"`. That tag is an id, not a personality.
+- `general-purpose` agents **can** call `Agent` themselves — unlike Grok, nesting is *not* host-enforced. Every path prompt must forbid it, and `host_guarantees.nesting` is `"prompt"`, not `"enforced"`.
+- If a spawn fails or `Agent` is unavailable, branch sequentially in the parent, keep outputs in separate files, and set `independence: "reduced"`.
+
+`general-purpose` carries the full tool set, so no capability restriction is needed for either research or shell-using paths.
+
+- Prompt every path: write **only** to its `output_path`; do not edit project source; do not list or read sibling `path-*.md`.
+- For software tasks whose paths build or run tests, pass `isolation: "worktree"` — each path gets its own git worktree, which enforces the tree-fingerprint contract structurally instead of by prompt. Caveat: a worktree is a fresh checkout, so uncommitted changes are invisible to the path. If the working diff *is* the evidence, omit worktree isolation and put the diff in SOURCE.
+
+The agent's final report is not shown to the user, and the parent must not paste raw path text into the response. The `path-k.md` files are the audit record: trust the **file**, not the agent's summary of it.
+
+### Amazon Kiro
+
+Same process; substitute that host's isolated child session and persist `path-k.md` with whichever ownership it requires. If only in-session branching exists, `independence: "reduced"`.
 
 ## Tool-call discipline
 
-Emit `spawn_subagent` calls **before** any user-visible text that claims paths were launched. After results return, report in the past tense. Never end a turn claiming a launch that did not happen in that response.
+Emit the path-spawn calls **before** any user-visible text that claims paths were launched. After results return, report in the past tense. Never end a turn claiming a launch that did not happen in that response, and never author a completion notice yourself.
 
 ## Configuration
 
@@ -125,11 +151,15 @@ If the problem is consequential and unstable, you may *recommend* (not silently 
 python3 -c "import uuid; print(uuid.uuid4().hex[:8])"
 ```
 
+If the host provides a session scratch directory, use it. Otherwise:
+
 ```bash
-scratch_dir="${TMPDIR:-/tmp}/grok-$(id -u)"; mkdir -p "$scratch_dir" && chmod 700 "$scratch_dir" && echo "$scratch_dir"
+scratch_dir="${TMPDIR:-/tmp}/multipath-$(id -u)"; mkdir -p "$scratch_dir" && chmod 700 "$scratch_dir" && echo "$scratch_dir"
 ```
 
 Inline the resolved absolute paths thereafter. Run root: `${scratch_dir}/multipath-${RUN_ID}/`.
+
+Paths receive **absolute** paths only. A child starts cold and may not share the parent's working directory.
 
 3. Write `source.md` under the run root. Define per-generation files as you go:
 
@@ -139,9 +169,9 @@ Inline the resolved absolute paths thereafter. Run root: `${scratch_dir}/multipa
 - `${run_root}/gen-${t}/convergence.md` — human-readable convergence notes
 - `${run_root}/gen-${t}/tree-before.txt` / `tree-after.txt` — project-tree fingerprint
 
-4. Open a `todo_write` scaffold (`merge: false`) with ids `setup`, `gen-0`, `converge-0`, then append `gen-N` / `converge-N` / `final-report` as the loop proceeds.
+4. If the host offers a todo/task tool, open a scaffold with items `setup`, `gen-0`, `converge-0`, then append `gen-N` / `converge-N` / `final-report` as the loop proceeds. Otherwise keep the same checklist in `${run_root}/progress.md`.
 
-If compaction lands mid-run, rebuild from files on disk (`source.md` + latest `state.json` + path files). Do not reconstruct SOURCE from memory.
+If compaction or context summarization lands mid-run, rebuild from files on disk (`source.md` + latest `state.json` + path files). Do not reconstruct SOURCE from memory.
 
 ## Generation 0
 
@@ -156,19 +186,13 @@ Before spawning, fingerprint the project tree and write it to `gen-0/tree-before
 
 Launch `N` independent paths in one turn. Each prompt is identical except `path_id` (`g0p1` … `g0pN`) and `output_path`.
 
-`spawn_subagent` parameters:
+Spawn parameters are host-specific — see **Host mechanism**. In every host: a general-purpose child agent, a fresh context per path, `description` prefixed with the path id, the parent's model inherited (do not set a model), and no mechanism that resumes or forks a prior context.
 
-- `subagent_type`: `"general-purpose"`
-- `background`: `true`
-- `capability_mode`: as in Host mechanism
-- `description`: `"[path-k] Independent reconstruction"`
-- Do **not** set `resume_from`, `isolation`, or `model`.
-
-Prompt template (substitute SOURCE, `path_id`, `output_path`):
+Prompt template (substitute SOURCE, `path_id`, `output_path`). A child starts cold, so the prompt must be self-contained — inline the SOURCE text rather than referring to "the task above":
 
 ```
 You are one independent reasoning path in a multipath experiment.
-You do not see other paths. Do not call spawn_subagent.
+You do not see other paths. Do not spawn subagents of your own.
 Do not invent a persona. Reconstruct the problem from SOURCE.
 Do not list or read other path-*.md files.
 
@@ -196,9 +220,11 @@ Rules:
 - Separate observations from inferences.
 - Do not collapse uncertainty into a false single answer.
 - Independent reconstruction beats parroting likely answers.
+- Your final report is not the deliverable. The file is. Finish by confirming
+  the file was written.
 ```
 
-Persist every path as `path-k.md` (child-written on Grok; parent-written from returned markdown on Codex). A failed path is a missing reconstruction, not a vote for the others. Continue with the survivors if at least two files exist; otherwise status `ABORTED_INSUFFICIENT_PATHS` and stop.
+Persist every path as `path-k.md` (child-written on Grok and Claude Code; parent-written from returned markdown on Codex). Verify the **file** exists and is non-empty; a child that reports success without a file has failed the contract. A failed path is a missing reconstruction, not a vote for the others. Continue with the survivors if at least two files exist; otherwise status `ABORTED_INSUFFICIENT_PATHS` and stop.
 
 After the generation, write `gen-0/tree-after.txt` with the same command. If it differs from `tree-before.txt`, set `project_mutated: true`, abort, and do not treat the generation as evidence.
 
@@ -318,7 +344,7 @@ python3 <skill_dir>/scripts/project_state_view.py <run_root>/gen-<t>/state.json 
 
 Which keys each view contains: `scripts/project_state_view.py` (single home) and `references/architecture.md` (meaning).
 
-Spawn a **new** independent population (`resume_from` would inherit a prior path’s conclusions — do not use it for recursive paths). Same capability-mode rules as Generation 0. Keep raw trajectories in `gen-${t}/path-*.md`. The parent keeps the full `state.json` for audit; paths see only their view.
+Spawn a **new** independent population. Do not reuse, resume, or fork a prior path's context — on Grok that is `resume_from`; on Claude Code it is `subagent_type: "fork"` or continuing a path with a follow-up message. Any of them inherits a prior path's conclusions. Same tool and isolation rules as Generation 0. Keep raw trajectories in `gen-${t}/path-*.md`. The parent keeps the full `state.json` for audit; paths see only their view.
 
 Recursive prompt: use the template in `references/architecture.md`. Substitute SOURCE, the projected view file (not full `state.json` except the full-state role), role addendum, `path_id`, and `output_path`. Include “write ONLY to output_path; do not edit the project.”
 

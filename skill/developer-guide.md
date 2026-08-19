@@ -37,6 +37,32 @@ Install: Codex’s skill directory (commonly `~/.codex/skills/multipath-reasonin
 
 **Audit ownership:** children return markdown; the **parent** writes `path-k.md`. Do not wait for Codex children to create audit files.
 
+### Claude Code
+
+Install: `~/.claude/skills/multipath-reasoning/` (user-level) or `<repo>/.claude/skills/multipath-reasoning/` (project-level). The skill registry is read at session start, so a freshly installed skill registers on the next session.
+
+```
+/multipath-reasoning <task>
+/multipath-reasoning --population 5 --max-generations 5 --diagnostics <task>
+```
+
+Claude Code can also auto-invoke from the frontmatter `description`. Because it can, the description carries the cost and the evidential status; if the skill self-invokes it must state N and the 15-25 invocation cost before spawning.
+
+**Independence:** the `Agent` tool with `subagent_type: "general-purpose"`. Each agent starts cold in its own context and never sees a sibling.
+
+**Audit ownership:** the child writes `path-k.md`. Verify the file, not the agent's report - an agent that claims success without a written file has failed the contract.
+
+Two host-specific traps, both absent on Grok:
+
+- `subagent_type: "fork"` inherits the parent's entire conversation. It is the shared-ancestor problem in tool form and must never be used for a path.
+- `subagent_type: "Explore"` has no write tool and cannot produce the audit file.
+
+**Nesting is not enforced here.** A `general-purpose` agent can call `Agent` itself, where Grok caps nesting at depth 1. The prohibition is prompt-only, so record `host_guarantees.nesting: "prompt"`.
+
+**Tree protection:** for software tasks, `isolation: "worktree"` gives each path its own git worktree and enforces the tree-fingerprint contract structurally rather than by prompt. It does not carry uncommitted changes - if the working diff is the evidence, omit it and put the diff in SOURCE.
+
+**Frontmatter:** install this tree unmodified. `when-to-use`, `argument-hint`, and `metadata` are Grok keys that Claude Code ignores, and leaving them in place keeps `scripts/validate_state.py` byte-identical to this repository, so no fix is stranded in a downstream copy.
+
 ### Other hosts / no isolated subagents
 
 Substitute the strongest isolated child-session primitive. If none exists, mark `independence: "reduced"` and `error_correlation_risk: "high"` before G0. Cheap tasks may proceed; high-consequence tasks should tell the user isolation is unavailable. In reduced mode, no claim may be classed `RECONSTRUCTED_STABLE`.
