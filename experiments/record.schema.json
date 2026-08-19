@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/gellsmore-svg/multipath-reasoning/experiments/record.schema.json",
+  "title": "Multipath experiment record",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "task_id",
+    "condition",
+    "model",
+    "population_size",
+    "generations",
+    "independence",
+    "final_answer",
+    "diagnostics"
+  ],
+  "properties": {
+    "schema_version": { "type": "string", "const": "0.1.0" },
+    "task_id": { "type": "string" },
+    "source_hash": { "type": "string" },
+    "condition": {
+      "type": "string",
+      "description": "single-path | majority | one-shot-synthesis | multipath-g0 | multipath-recursive | multipath-full-state-leak | other"
+    },
+    "model": { "type": "string" },
+    "model_settings": { "type": "object" },
+    "population_size": { "type": "integer", "minimum": 1 },
+    "generations": { "type": "integer", "minimum": 1 },
+    "independence": { "enum": ["full", "reduced"] },
+    "constraint_view_used": { "type": "boolean" },
+    "artifact_dir": { "type": "string" },
+    "final_answer": { "type": "string" },
+    "ground_truth": { "type": ["string", "null"] },
+    "matches_ground_truth": { "type": ["boolean", "null"] },
+    "completion_status": {
+      "enum": [
+        "STABLE_HIGH_CONFIDENCE",
+        "STABLE_WITH_UNCERTAINTY",
+        "PREMATURE_CONVERGENCE",
+        "NON_CONVERGENT",
+        "MAX_DEPTH_REACHED"
+      ]
+    },
+    "false_attractor_warnings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["code"],
+        "properties": {
+          "code": { "type": "string" },
+          "detail": { "type": "string" }
+        }
+      }
+    },
+    "diagnostics": {
+      "type": "object",
+      "description": "Parent-assigned diagnostics, not probabilities.",
+      "required": [
+        "fidelity",
+        "coherence",
+        "uncertainty",
+        "diversity",
+        "provenance_integrity",
+        "constraint_satisfaction",
+        "cross_order_consistency",
+        "reconstructability"
+      ],
+      "additionalProperties": true
+    },
+    "cost": {
+      "type": "object",
+      "properties": {
+        "tokens": { "type": ["integer", "null"] },
+        "wall_clock_s": { "type": ["number", "null"] }
+      }
+    },
+    "notes": { "type": "string" }
+  }
+}

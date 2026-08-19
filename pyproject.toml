@@ -1,0 +1,45 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "multipath-reasoning"
+version = "0.1.0"
+description = "Recursive multipath reasoning for LLMs: independent reconstruction, admissibility, provenance, and false-attractor resistance."
+readme = "README.md"
+requires-python = ">=3.11"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+authors = [{ name = "gellsmore-svg" }]
+keywords = [
+    "llm",
+    "reasoning",
+    "agents",
+    "multi-agent",
+    "recursive-reasoning",
+    "admissibility",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/gellsmore-svg/multipath-reasoning"
+Documentation = "https://github.com/gellsmore-svg/multipath-reasoning#readme"
+
+[project.scripts]
+multipath-validate-state = "validate_state:main"
+multipath-project-view = "project_state_view:main"
+
+[tool.setuptools]
+py-modules = ["validate_state", "project_state_view"]
+
+[tool.setuptools.package-dir]
+"" = "skill/scripts"
