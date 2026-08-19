@@ -46,8 +46,15 @@ Load supporting files from this skill directory only when needed:
 
 ## Preconditions — check these before spending anything
 
-Recorded runs (`experiments/RESULTS-2026-08-19.md`) show this method earns its cost only in
-a narrow band. **All four must hold.** If any fails, solve the task directly.
+**These four conditions are an untested heuristic, not a validated boundary.** They were
+inferred from four tasks in one domain (single-root-cause debugging with an oracle), and
+22 of the 25 records restage a single bug. Nothing tests their necessity or sufficiency, and
+no-oracle settings — research, architecture, decision analysis — were never run at all. Two
+external audits judged the stated version of this bound UNSUPPORTED
+(`experiments/audits/`).
+
+Treat them as the author's current guess at where the method is worth its cost. If any fails,
+solving the task directly is very likely the better move.
 
 1. **The population can be wrong together.** If a single competent trajectory reliably solves
    the task, the population adds nothing — measured: on four real oracle bugs a single
@@ -69,24 +76,30 @@ a narrow band. **All four must hold.** If any fails, solve the task directly.
    — no oracle, no invariant, no test — verification degenerates into opinion and this
    method has no recorded support in that setting.
 
-## What does not work — do not build these
+## What has not worked — on the evidence so far
 
-Each was measured; none is a matter of taste.
+Each of these was measured rather than assumed. But every one comes from a small number of
+runs on a narrow task family, and most from a **single bug restaged** — see
+`experiments/RESULTS-2026-08-19.md` and the external audits beside it. Read these as
+"not demonstrated to help, and here is what happened when tried", not as laws.
 
-- **Sampling one model N times and taking the mode.** Bias does not average out. More samples
-  raise confidence in the same wrong answer.
+- **Sampling one model N times and taking the mode.** On one task one model returned the same
+  wrong answer 21/21; on two other populations the majority was correct. Bias did not average
+  out where it existed, but this is not a law of resampling and confidence was never plotted
+  against N.
 - **Asking a model to review a single answer** ("here is the answer, is it correct?"). Three
-  reviewers, zero discrimination against a *plausible* wrong answer: one kept everything
-  (p_fp 0%, p_r 0%), one changed everything (100%/100%), one was noise. Both failure modes
-  produce fluent, decisive prose carrying no information. An earlier +1.00 for this design
-  was an artifact of an implausible wrong seed and vanished under a hard one.
+  reviewers on one task, none usable: one kept everything (p_fp 0%, p_r 0%), one changed
+  everything (100%/100%), one reached +0.13 on 5 of 10 valid responses. The first two produce
+  fluent, decisive prose carrying no information. An earlier +1.00 for this design was an
+  artifact of an implausible wrong seed and vanished under a hard one. One task — treat this
+  as "not demonstrated to help", not as a general law.
 - **A convergence step run by the same model that generated the candidates**, judging by
-  frequency. Measured: reproduces the population's mode 4 of 4 and stamps the wrong answer
-  `STABLE_HIGH_CONFIDENCE`.
+  frequency. On four populations of one bug it reproduced the mode 4 of 4 and stamped a wrong
+  answer `STABLE_HIGH_CONFIDENCE`.
 - **Adding more review passes.** Splitting a stage into produce-then-review is
   re-partitioning, not new signal. Each same-model pass re-applies the same prior.
 
-**The one shape with recorded support is comparative:** several *distinct* candidates,
+**The one shape with any recorded support is comparative** (one task, one run): several *distinct* candidates,
 frequencies stripped, each checked against a derived rule. A model that cannot judge one
 answer in isolation can often pick correctly among four. Preserve that shape; a second pass
 that judges a single item is worthless.

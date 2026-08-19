@@ -2,6 +2,26 @@
 
 ## [Unreleased]
 
+### External audit — six of seven claims failed
+
+Two frontier models from other vendors (Codex, Grok) audited the repository's own claims,
+given the records and no sight of the author's reasoning. Artifacts in `experiments/audits/`.
+
+- **Corrected a factual error in the headline result.** "Single-path matched 4/4 while the
+  population tied at ~5x cost" implied a four-task comparison. The population arm ran on
+  **one** of the four tasks; the other three have a single-path record and no population arm.
+  One auditor passed this claim; the other caught it.
+- **Recorded that 22 of 25 records restage a single bug.** The `bounded-lock-*` ids and
+  `hoglah-segv` are one `close()`-without-the-lock defect in different framings, so the
+  mechanism "replications" are not independent.
+- **Demoted the preconditions** in `SKILL.md` from a validated boundary to an untested
+  heuristic; both audits judged the stated version unsupported.
+- **Demoted the "what does not work" list** from laws to task-scoped observations, and
+  corrected the single-answer-review claim: three reviewers showed three behaviours, and the
+  third scored +0.13, not zero.
+- The two auditors disagreed on two items and the disagreement located the error, which is
+  the mechanism this repository describes, working on a real artifact. One instance; no rate.
+
 ### Method change — preconditions, and what does not work
 
 - **Preconditions gate** added to `SKILL.md`: four conditions that must all hold before the

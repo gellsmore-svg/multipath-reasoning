@@ -1,0 +1,31 @@
+C5: OVERSTATED — The peer and self-contained records show comparative verification beating voting on one bounded-lock bug and one candidate pool, while RESULTS concedes “one task, one bug, one run per configuration.”
+
+C6: SUPPORTED — RESULTS records single-path matches on all four oracle bugs and, on the only task receiving both arms, `hoglah-segv` multipath also matched while using 495,780 versus 100,372 tokens and five versus one invocation.
+
+C7: UNSUPPORTED — SKILL.md presents all four preconditions as a validated boundary, but the records cover one debugging domain, never test no-oracle settings, and do not establish either necessity or sufficiency for the four-part rule.
+
+BIGGEST_PROBLEM: The repo turns one synthetic bounded-lock bug into sweeping laws about independence, voting, review, and model-family diversity despite RESULTS repeatedly admitting that no rate is established.
+
+SAMPLE_SIZE_HONEST: YES — RESULTS plainly discloses four oracle tasks, only one direct multipath comparison, and one task/bug/run for the mixed-model and review findings, even though README and SKILL.md overgeneralize from those counts.
+hook: Stop
+hook: Stop Completed
+tokens used
+22,825
+C1: OVERSTATED — RESULTS reports one model giving the same wrong answer 17/17 times on one bounded-lock task, which demonstrates persistent bias there but cannot establish the universal claim that resampling never corrects systematic bias.
+
+C2: OVERSTATED — The mixed-model record shows a second family supplied the missing `close` candidate on one task, but no recorded experiment establishes that context-isolated same-model samples are categorically “not independent at any N.”
+
+C3: OVERSTATED — `bounded-lock-peer` shows majority vote burying the correct 3-of-16 candidate once, while the `dc1` and `dc2` records show majority vote succeeding, so “precisely when” is an unsupported generalization.
+
+C4: CONTRADICTED — RESULTS explicitly records three behaviors, not two, and `gemma4:latest` achieved +0.13 discrimination rather than literally carrying no information.
+
+C5: OVERSTATED — The peer and self-contained records show comparative verification beating voting on one bounded-lock bug and one candidate pool, while RESULTS concedes “one task, one bug, one run per configuration.”
+
+C6: SUPPORTED — RESULTS records single-path matches on all four oracle bugs and, on the only task receiving both arms, `hoglah-segv` multipath also matched while using 495,780 versus 100,372 tokens and five versus one invocation.
+
+C7: UNSUPPORTED — SKILL.md presents all four preconditions as a validated boundary, but the records cover one debugging domain, never test no-oracle settings, and do not establish either necessity or sufficiency for the four-part rule.
+
+BIGGEST_PROBLEM: The repo turns one synthetic bounded-lock bug into sweeping laws about independence, voting, review, and model-family diversity despite RESULTS repeatedly admitting that no rate is established.
+
+SAMPLE_SIZE_HONEST: YES — RESULTS plainly discloses four oracle tasks, only one direct multipath comparison, and one task/bug/run for the mixed-model and review findings, even though README and SKILL.md overgeneralize from those counts.
+CODEX_AUDIT_DONE

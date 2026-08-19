@@ -168,9 +168,11 @@ answer (the population's own attractor):
 | a different family | 100% | 100% | 0.00 — changed everything |
 | a third model | 20% | 33% | +0.13 — noise |
 
-Two mirror failure modes, both fluent and decisive: the **sycophant** defers to whatever it
-is shown, the **inverter** rejects whatever it is shown. Neither can catch an error, and the
-inverter destroys correct answers at the same rate it fixes wrong ones.
+Three reviewers, three behaviours — not two. Two are mirror failures, both fluent and
+decisive: the **sycophant** defers to whatever it is shown, the **inverter** rejects whatever
+it is shown. The third scored **+0.13**, which is weak rather than literally zero, and on only
+5 of 10 valid responses. The accurate statement is that none of the three reached usable
+discrimination on this task, not that single-answer review is information-free in general.
 
 **Detection:** measure p_r and p_fp separately. A reviewer whose overturn rate is the same
 for correct and incorrect inputs is contributing nothing, however good its reasoning looks.

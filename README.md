@@ -39,13 +39,17 @@ constraints.
 
 ### What does not work
 
-Measured, not assumed (`experiments/RESULTS-2026-08-19.md`):
+Measured rather than assumed — but on a narrow task family, and **22 of 25 records restage a
+single bug**. Two external audits (`experiments/audits/`) judged the stronger forms of these
+overstated. Read them as observations, not laws:
 
-- **Resampling one model and taking the mode.** Errors stay correlated and biased; one model
-  returned an identical wrong answer 21/21 times. More samples buy confidence, not accuracy.
-- **Reviewing a single answer.** Three reviewers, zero discrimination against a plausible
-  wrong answer — one kept everything, one changed everything. Splitting a stage into
-  produce-then-review is re-partitioning, not new signal.
+- **Resampling one model and taking the mode.** One model returned an identical wrong answer
+  21/21 times on one bug — but majority vote was correct on two other populations. Where bias
+  exists it does not average out; that is narrower than "more samples never help".
+- **Reviewing a single answer.** Three reviewers on one task: one kept everything, one
+  changed everything, one reached +0.13 on half its responses. None was usable. On this
+  evidence, splitting a stage into produce-then-review is not worth building — but it is one
+  task, and the claim is "not demonstrated to help", not "proven useless".
 - **Convergence by frequency**, even dressed as evaluation — a same-model parent reproduces
   the population's mode and certifies it as high confidence.
 
