@@ -9,8 +9,10 @@ This document does not replace the skill. The numbered items below are **prompt-
 ## Host obligations (prompt-level)
 
 1. **SOURCE is persistent.** The original request, explicit constraints, source evidence, required outputs, definitions, and user-supplied facts are written once and passed verbatim. Later summaries must not replace them.
-2. **Generation 0 is independent.** Same SOURCE, separate contexts, no sibling answers, no personas-as-fake-diversity, same model/settings where feasible. Record `independence: full` only when those hold; otherwise `reduced`.
-3. **Consensus is not truth.** Agreement is population stability. Prefer source-supported, independently reconstructable claims over popular ones.
+2. **Generation 0 is independent in two senses.** *Context isolation*: same SOURCE, separate contexts, no sibling answers, no personas-as-fake-diversity. *Error decorrelation*: two or more model families of comparable capability. Record `independence: full` only when **both** hold; a single-model population is `reduced` at any N. Same-model sampling perturbs the draw, not the prior — recorded runs show one model returning an identical wrong answer on 21 of 21 samples.
+3. **Consensus is not truth — so verify, don't count.** Agreement is population stability. Convergence reduces the population to its *distinct* claims, discards the frequencies, and checks each against a rule derived from the evidence. The correct answer is frequently a minority claim; recorded runs recovered a 3-of-16 answer that majority vote buried.
+
+3a. **Verification needs a quorum.** Verifier bias is real and model-specific: one model chose the same wrong candidate on 4 of 4 verification trials, once overriding a correct majority. Verify with members from different families and record each verdict.
 4. **Coherence is not fidelity.** Rising agreement without rising source-anchoring is a warning, not success.
 5. **No winner-as-ancestor.** Do not make one synthesized prose answer the sole input to later paths. Do not give every later path the full parent `state.json`.
 6. **At least one later path is blind.** The `blind` view is SOURCE + hard/soft constraints only. Source-heavy paths use a `constraint` view (hypothesis-testing; may name prior hypotheses). Neither receives `conserved_findings`, `score`, `stability`, `recommended_next_action`, `paired_balance`, or `provenance`. Projector: `skill/scripts/project_state_view.py`. `VERDICT_KEYS` is the single list.
@@ -40,6 +42,11 @@ Forbidden: population → winner → copies of winner.
 ## Default population
 
 N = 5 (configurable, ≥ 2). Do not raise N for appearance.
+
+**Composition matters more than N.** Prefer two or more model families of comparable
+capability on the task at hand. Gate members on whether they can read the evidence
+accurately and answer in the required shape — a member below that floor dilutes coverage
+(measured 83% → 59%) and votes confidently on verification. Record `model_mix`.
 
 Recursive mix: `ROLE_SEQUENCE` in `skill/scripts/project_state_view.py` (single algorithm for every N ≥ 2).
 

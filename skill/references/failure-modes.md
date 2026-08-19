@@ -117,3 +117,40 @@ N ≥ 3 paths produced one distinct solution, with no reduced-independence flag.
 `independence: "full"` records that children did not see siblings. Same-model samples still share training priors.
 
 **Repair:** record `error_correlation_risk: "high"` unless models or sampling were mixed. Do not treat reconstructability as independent of shared pretraining.
+
+## Zero support
+
+The correct answer is outside the population's reachable output for this prompt. Every
+sample returns the same wrong claim with high confidence. Measured: one model produced an
+identical wrong culprit on 21 of 21 samples across every run of one task.
+
+**Detection:** `distinct_solutions == 1`, or a candidate set that stops growing after two
+samples. Note this is *indistinguishable from a correct confident answer* without checking
+against the source — which is why the check is mandatory rather than optional.
+
+**Repair:** more samples cannot help; the answer is not in the support. Change the
+population's composition — a different model family — or seek external evidence. Never
+report a degenerate population as high confidence.
+
+## Verifier bias
+
+Verification is easier than generation but is **not** bias-free, and its bias is distinct
+from the generator's. Measured: a model chose the same wrong candidate on 4 of 4
+verification trials, including one where the population's majority had been correct —
+self-verification destroyed a right answer.
+
+**Repair:** verify with a quorum drawn from different families, and record each verdict
+separately. A single verifier, especially one drawn from the same model as the generators,
+is a single point of correlated failure. Do not treat one verifier's confidence as support.
+
+## Dilution by an under-capable peer
+
+Adding a member that cannot do the task does not add diversity. It consumes population
+slots with answers that can never be correct, and it votes confidently on verification.
+Measured: adding zero-support members reduced the chance the correct answer reached the
+pool from 83% to 59% at N=8, and the weakest member asserted a false premise about the
+source while nonetheless deriving the audit rule correctly.
+
+**Repair:** gate on capability before spawning — can the member read the evidence
+accurately and answer in the required shape? Deriving a rule correctly does not imply
+being able to apply it. Drop members that fail the gate rather than out-voting them.

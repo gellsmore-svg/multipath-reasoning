@@ -23,13 +23,40 @@ The method is usable without any of the author’s other systems. It was *inspir
 
 Instead of asking one model trajectory to solve a hard problem once, Multipath:
 
-1. Creates several **independent** reasoning paths from the same original problem (SOURCE).
+1. Draws candidate answers from a **population of different model families of comparable
+   capability**, so that the correct answer has a chance of being produced at all.
 2. Keeps them separate long enough to preserve real variation.
-3. Builds a **structured admissibility state** — what must be respected, what is still open — not a winner paragraph.
-4. Runs another generation from SOURCE plus a **role-specific view** of that state.
-5. Stops when the result actually stabilizes, or when further generations would only repeat inherited reasoning.
+3. Derives an **audit rule** from the evidence itself — what invariant does this hold, and
+   how would you mechanically check for a violation?
+4. **Verifies** the distinct candidates against that rule, with the vote counts stripped,
+   using more than one verifier.
+5. Builds a **structured admissibility state** — what must be respected, what is still open
+   — not a winner paragraph.
+6. Stops when the candidate set stops growing and the result actually stabilizes.
 
-The goal is not agreement. The goal is fidelity to the original problem, evidence, and constraints.
+The goal is not agreement. The goal is fidelity to the original problem, evidence, and
+constraints.
+
+### Where the value actually is
+
+Recorded runs (`experiments/RESULTS-2026-08-19.md`) put this narrowly:
+
+- **One model, sampled N times: little value.** Temperature perturbs the draw, not the
+  prior. Errors stay correlated and biased, so more samples make a systematic mistake more
+  confident. One model returned the same wrong answer on **21 of 21** samples.
+- **One model with genuinely varied output: some value.** If its candidate set really does
+  vary across samples, the right answer may sit somewhere in that spread, and verification
+  can pick it out. But you cannot know in advance whether it does, and a degenerate
+  population looks exactly like a confident correct one.
+- **Several comparable models from different families: this is where it earns its cost.**
+  Different training corpora fail differently, which is the decorrelation resampling cannot
+  produce. In a recorded run the correct answer entered the pool only via a second family,
+  was a 3-of-16 minority, and majority vote returned the wrong answer while verification
+  returned the right one.
+
+**Comparable capability is a requirement, not a preference.** Adding members that cannot do
+the task dilutes coverage — measured, 83% → 59% — and adds confident noise at the
+verification step.
 
 ## Why majority vote is not enough
 
@@ -38,6 +65,13 @@ Five paths might say: database race, database race, retry ordering, database rac
 A vote would crown “database race.” All three agreeing paths may share one bad assumption.
 
 Multipath distinguishes **agreement** (population stability) from **support** (source, tests, constraints, independent reconstruction). Consensus is not truth.
+
+The operational form of that is: **verify, don't count.** Reduce the population to its
+*distinct* claims, discard the frequencies, and check each against a rule derived from the
+evidence. Counting weights by frequency, and when a model is biased the correct answer is
+by definition the infrequent one. Verification ignores frequency, so a 1-in-15 answer is
+worth exactly as much as a 9-in-15 one — which is how a recorded run recovered a minority
+answer that every counting rule buried.
 
 ## The false-attractor problem
 
