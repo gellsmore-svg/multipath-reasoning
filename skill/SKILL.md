@@ -44,6 +44,53 @@ Load supporting files from this skill directory only when needed:
 - `scripts/project_state_view.py` — role-specific path-facing views of `state.json`
 - `developer-guide.md` — human-facing Developer Guide. Do **not** load it during a run unless the user asks about the method, the checklist, or how Multipath works.
 
+## Preconditions — check these before spending anything
+
+Recorded runs (`experiments/RESULTS-2026-08-19.md`) show this method earns its cost only in
+a narrow band. **All four must hold.** If any fails, solve the task directly.
+
+1. **The population can be wrong together.** If a single competent trajectory reliably solves
+   the task, the population adds nothing — measured: on four real oracle bugs a single
+   frontier path matched ground truth 4/4 while the population tied at ~5x the cost. This
+   method is for tasks where a confident answer can be confidently wrong.
+
+2. **The population can contain the right answer.** Sample once or twice first. If every
+   sample returns the same claim, the answer is likely outside the model's support and no N
+   recovers it — measured: one model produced an identical wrong answer on 21 of 21 samples.
+   A degenerate population is indistinguishable from a correct one without checking against
+   the source.
+
+3. **Two or more model families of comparable capability are available.** Resampling one
+   model perturbs the draw, not the prior; its errors stay correlated and biased. Members
+   that cannot read the evidence accurately dilute coverage rather than adding diversity.
+
+4. **The evidence supports a checkable rule.** Convergence works by verifying candidates
+   against an invariant derived from the evidence. If nothing about the task can be checked
+   — no oracle, no invariant, no test — verification degenerates into opinion and this
+   method has no recorded support in that setting.
+
+## What does not work — do not build these
+
+Each was measured; none is a matter of taste.
+
+- **Sampling one model N times and taking the mode.** Bias does not average out. More samples
+  raise confidence in the same wrong answer.
+- **Asking a model to review a single answer** ("here is the answer, is it correct?"). Three
+  reviewers, zero discrimination against a *plausible* wrong answer: one kept everything
+  (p_fp 0%, p_r 0%), one changed everything (100%/100%), one was noise. Both failure modes
+  produce fluent, decisive prose carrying no information. An earlier +1.00 for this design
+  was an artifact of an implausible wrong seed and vanished under a hard one.
+- **A convergence step run by the same model that generated the candidates**, judging by
+  frequency. Measured: reproduces the population's mode 4 of 4 and stamps the wrong answer
+  `STABLE_HIGH_CONFIDENCE`.
+- **Adding more review passes.** Splitting a stage into produce-then-review is
+  re-partitioning, not new signal. Each same-model pass re-applies the same prior.
+
+**The one shape with recorded support is comparative:** several *distinct* candidates,
+frequencies stripped, each checked against a derived rule. A model that cannot judge one
+answer in isolation can often pick correctly among four. Preserve that shape; a second pass
+that judges a single item is worthless.
+
 ## When not to run
 
 Skip this skill and solve the task directly when it is a simple factual lookup, straightforward formatting, mechanical edit, obvious one-line fix, simple transformation, or the extra inference cost clearly outweighs the benefit.

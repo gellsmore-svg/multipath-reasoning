@@ -2,7 +2,13 @@
 
 Audience: someone who will **implement, port, or critique** the loop.
 
-This is a wiring description of the **specified process** and of **what the repository actually executes**. It is not a claim that the method improves reliability. There are no recorded task experiments in this tree.
+This is a wiring description of the **specified process** and of **what the repository
+actually executes**.
+
+There **are** recorded task experiments in this tree now — see
+[`experiments/RESULTS-2026-08-19.md`](../experiments/RESULTS-2026-08-19.md) and the records
+beside it. They are small, they claim no significance, and they falsified part of the
+original design. Read them before treating any claim below as established.
 
 For invariants, see [specification.md](specification.md). For field meanings, see [`skill/references/architecture.md`](../skill/references/architecture.md). For the agent procedure, see [`skill/SKILL.md`](../skill/SKILL.md). Do not treat this file as a third copy of those tables.
 
@@ -21,31 +27,45 @@ There is no scheduler, no scorer, no path-file parser, no experiment runner, and
 
 ## What it is not
 
-- A voting algorithm (“3 of 5 said X”).
+- A voting algorithm ("3 of 5 said X"). Convergence strips vote counts before judging,
+  because a biased population makes the correct answer the *infrequent* one.
+- **A way to make one model more reliable by sampling it more.** Temperature perturbs the
+  draw, not the prior. Recorded: one model returned an identical wrong answer on 21 of 21
+  samples. A single-model population is `independence: reduced` at any N.
 - A calibrated confidence engine. Diagnostic numbers are **not** probabilities.
-- A Deborah/Hoglah stack. Deborah is a process *language*. Hoglah is a job queue. See [system-landscape.md](system-landscape.md).
-- Proven. `STRUCTURAL_OK` and passing unit tests only mean the helpers and install tree are internally consistent.
+- A Deborah/Hoglah stack. See [system-landscape.md](system-landscape.md).
+- Proven. `STRUCTURAL_OK` and passing unit tests only mean the helpers and install tree are
+  internally consistent.
 
 ## Actors
 
 | Actor | Job | Sees |
 |-------|-----|------|
-| **Parent** (the session that loaded the skill) | Writes SOURCE, spawns paths, reads every `path-k.md`, writes `state.json`, runs the two scripts, decides stop/continue, writes the user answer, and may implement **after** analysis | Everything |
-| **Generation-0 paths** | Independent reconstructions | SOURCE + their output path |
-| **Recursive paths** | Same write-up contract plus a **role-specific view** | SOURCE + one view file |
+| **Parent** (the session that loaded the skill) | Writes SOURCE, composes the population, spawns every stage, reads every `path-k.md`, writes `state.json`, runs the scripts, decides stop/continue, writes the user answer, and may implement **after** analysis | Everything |
+| **Rule-derivers** (≥2) | Derive an invariant and a mechanical check **from the evidence**, without naming a candidate or diagnosing | SOURCE only |
+| **Generation paths** | Produce candidate answers | SOURCE (+ a role-specific view at t ≥ 1) |
+| **Verifiers** (quorum, mixed families) | Apply the derived rule to the **deduplicated, count-stripped** candidate set | SOURCE + derived rule + distinct candidates |
 | **Host** | Isolates child contexts | — |
 
-Path independence does **not** make the parent’s `state.json` independent. The spec states that explicitly.
+Two independence problems, not one. Path isolation does **not** make the parent's
+`state.json` independent — stated in the spec, and measured: a same-model parent reproduced
+the population's mode on 4 of 4 populations and stamped the wrong answer
+`STABLE_HIGH_CONFIDENCE`. Separately, verifiers carry their own model-specific bias: one
+model chose the same wrong candidate on 4 of 4 verification trials, once overriding a
+majority that had been correct. Hence the quorum, drawn from different families.
 
 ## On-disk data flow
 
-Specified run root (Grok mapping): `${TMPDIR:-/tmp}/grok-$(id -u)/multipath-${RUN_ID}/`.
+Run root: the host's session scratch directory, else `${TMPDIR:-/tmp}/multipath-$(id -u)/multipath-${RUN_ID}/`.
 
 ```
 source.md                         # persistent original; never replaced by summaries
 gen-${t}/path-${k}.md             # raw path audit (parent only)
 gen-${t}/state.json               # full admissibility + scores (parent / audit)
 gen-${t}/convergence.md           # human notes
+gen-${t}/derived_rule.md          # invariant + mechanical check, derived from evidence
+gen-${t}/candidates.json          # DISTINCT claims, frequencies discarded
+gen-${t}/verification.json        # one verdict per verifier, not just the consensus
 gen-${t}/view-blind.json          # reconstructability probe
 gen-${t}/view-constraint.json     # source-heavy (hypothesis-test)
 gen-${t}/view-retained.json
@@ -55,12 +75,19 @@ gen-${t}/view-full.json
 
 ```
 SOURCE
-  → G_t   (G0: identical prompts except path_id / output_path)
-  → parent evaluation of path-*.md   (do not vote)
-  → state.json + convergence.md
-  → validate_state.py → STRUCTURAL_OK   (schema only)
+  → compose population   (>=2 model families of comparable capability; gate out members
+                          that cannot read the evidence or answer in shape)
+  → derive rule          (>=2 members, from SOURCE only, naming no candidate)
+                         → derived_rule.md
+  → G_t                  (identical prompts except path_id / output_path)
+  → dedupe               → candidates.json   (DISTINCT claims; FREQUENCIES DISCARDED)
+  → verify               (quorum, mixed families, rule + candidates + SOURCE)
+                         → verification.json   (one verdict each)
+  → parent convergence   → state.json + convergence.md   (do not vote)
+  → validate_state.py    → STRUCTURAL_OK   (schema only)
   → project_state_view.py
-  → G_{t+1}: new contexts, SOURCE + one view each, no resume_from
+  → G_{t+1}: new contexts, SOURCE + one view each, never a resumed or forked context
+  → coverage test        (did the candidate set grow? if not, stop expanding)
   → stop test
   → repeat while useful; default cap 5 generations (G0 counts as 1)
 ```
@@ -69,6 +96,9 @@ Forbidden:
 
 - population → winner paragraph → copies of winner
 - giving **every** later path the full `state.json`
+- **showing the verifier how many paths proposed each candidate** — that reintroduces the
+  vote the method exists to replace
+- one model as the entire population, or as the only verifier
 
 ## Generation 0
 

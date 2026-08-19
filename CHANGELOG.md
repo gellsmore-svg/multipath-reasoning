@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+### Method change — preconditions, and what does not work
+
+- **Preconditions gate** added to `SKILL.md`: four conditions that must all hold before the
+  method is worth running. Most tasks fail at least one.
+- **A "what does not work" section**, each item measured: resampling one model and taking the
+  mode; reviewing a single answer; convergence by frequency; adding more review passes.
+- New failure mode **Single-answer review carries no information** — three reviewers, zero
+  discrimination against a plausible wrong answer, in two mirror modes (sycophant, inverter).
+- Fourth recorded run (3 records) and a correction: an earlier +1.00 for adversarial review
+  was an artifact of an implausibly-wrong seed and did not survive a hard one.
+
 ### Method change — population composition and verify-don't-count
 
 Driven by the recorded runs in `experiments/RESULTS-2026-08-19.md`.

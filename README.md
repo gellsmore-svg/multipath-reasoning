@@ -37,6 +37,18 @@ Instead of asking one model trajectory to solve a hard problem once, Multipath:
 The goal is not agreement. The goal is fidelity to the original problem, evidence, and
 constraints.
 
+### What does not work
+
+Measured, not assumed (`experiments/RESULTS-2026-08-19.md`):
+
+- **Resampling one model and taking the mode.** Errors stay correlated and biased; one model
+  returned an identical wrong answer 21/21 times. More samples buy confidence, not accuracy.
+- **Reviewing a single answer.** Three reviewers, zero discrimination against a plausible
+  wrong answer — one kept everything, one changed everything. Splitting a stage into
+  produce-then-review is re-partitioning, not new signal.
+- **Convergence by frequency**, even dressed as evaluation — a same-model parent reproduces
+  the population's mode and certifies it as high confidence.
+
 ### Where the value actually is
 
 Recorded runs (`experiments/RESULTS-2026-08-19.md`) put this narrowly:
