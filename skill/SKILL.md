@@ -11,6 +11,9 @@ description: >
   for multipath reasoning, independent reconstructions, or /multipath-reasoning.
   Avoid for trivial lookups, formatting, mechanical edits, obvious one-line
   fixes, or tasks where extra inference cost outweighs the benefit.
+  Experimental: no recorded task experiments. A default run that satisfies
+  the two-transition stop test is 15 path invocations (N=5 × 3 generations),
+  up to 25 at the generation cap.
 when-to-use: >
   Use when asked for multipath reasoning, independent reconstructions,
   high-reliability analysis, or /multipath-reasoning; also for ambiguous,
@@ -43,13 +46,24 @@ Load supporting files from this skill directory only when needed:
 
 ## When not to run
 
-Skip this skill and solve the task directly when it is a simple factual lookup, straightforward formatting, mechanical edit, obvious one-line fix, simple transformation, or the extra inference cost clearly outweighs the benefit. If the user explicitly invoked `/multipath-reasoning`, run it anyway unless they immediately contradict that request.
+Skip this skill and solve the task directly when it is a simple factual lookup, straightforward formatting, mechanical edit, obvious one-line fix, simple transformation, or the extra inference cost clearly outweighs the benefit.
+
+A run that satisfies the two-consecutive-transition stop test costs **at least 15 path invocations** at default N=5 (G0+G1+G2), plus parent evaluations, and **up to 25** at `--max-generations 5`. There are no recorded task experiments in this repository. If the skill self-invoked rather than being explicitly requested, state N and that cost before spawning.
+
+If the user explicitly invoked `/multipath-reasoning`, run it anyway unless they immediately contradict that request.
 
 ## Host mechanism
 
-Use the strongest independence the current host provides. Generation-0 paths must start in separate contexts, receive the same SOURCE, not see siblings, and not inherit one another’s conclusions. If you can only simulate branches in one context, mark `independence: "reduced"`.
+Use the strongest independence the current host provides. Generation-0 paths must start in separate contexts, receive the same SOURCE, not see siblings, and not inherit one another’s conclusions.
 
-The mapping below is the native Grok Build implementation. On Claude Code, Codex, or Amazon Kiro, substitute that host’s isolated subagent / child-session primitive and keep the rest of this skill.
+**Preflight.** Before G0, note whether the host can spawn isolated child contexts. If not, mark `independence: "reduced"` and `error_correlation_risk: "high"`. Reduced-mode runs may proceed for cheap tasks; for high-consequence tasks, tell the user isolation is unavailable and prefer a smaller N or stop. In reduced mode, no claim may be classed `RECONSTRUCTED_STABLE`, and the user-facing summary must say isolation was simulated.
+
+`independence: "full"` means **context isolation**, not error independence. Same-model homogeneous samples still share training priors (see `references/failure-modes.md`). Record `error_correlation_risk: "high"` unless models or sampling settings were deliberately mixed.
+
+**Audit persist contract (host-neutral):** every path’s output is persisted as `gen-${t}/path-${k}.md`. Who writes the file is host-specific:
+
+- **File-writing hosts (Grok):** the child writes the file; parent waits for a non-empty file.
+- **Return-markdown hosts (Codex and similar):** the child returns markdown; the **parent** writes `path-k.md`. Do not wait for the child to create the file, and do not grant the child project write for that reason.
 
 ### Grok Build
 
@@ -74,6 +88,16 @@ Capability mode — generation paths **must** be able to write `path-k.md`. On t
 
 Do not use the `workflow` tool as a substitute for this skill. Do not pass a `persona` parameter to `spawn_subagent`.
 
+Before each generation, record `git rev-parse HEAD` and `git status --porcelain` (or a `find` hash on non-git trees). After the generation, re-check. On mismatch, abort, set `project_mutated: true` in `state.json`, and do not treat the generation as evidence. Prefer per-child worktree isolation when the host offers it.
+
+### Codex
+
+Use the host’s isolated child-agent primitive (`multi_agent_v1.spawn_agent` or current equivalent). Children return markdown; **you** write `path-k.md`. Do not instruct Codex children to write audit files. Install the same `skill/` tree under the Codex skills directory.
+
+### Claude Code / Amazon Kiro
+
+Same process; substitute that host’s isolated child session. Persist `path-k.md` using whichever ownership the host requires (child write vs parent write). If only in-session branching exists, `independence: "reduced"`.
+
 ## Tool-call discipline
 
 Emit `spawn_subagent` calls **before** any user-visible text that claims paths were launched. After results return, report in the past tense. Never end a turn claiming a launch that did not happen in that response.
@@ -88,13 +112,13 @@ Parse the argument string before anything else:
 | `--max-generations N` | `5` | Inclusive cap on generations (G0 counts as 1). Integer ≥ 1. |
 | `--diagnostics` | off | Include the compact diagnostic block in the user response. |
 
-Five is a useful default, not an optimum. Do not raise N merely to look rigorous. You may *recommend* a larger N for a particularly hard task; begin at 5 unless the user set `--population`.
+Five is a useful default, not an optimum. Do not raise N merely to look rigorous. You may choose a **smaller N before spawning**. Once a path is launched, wait for it and read its output. Never stop a generation because paths agree — that is majority vote.
 
-If three paths already establish the issue conclusively and further paths would add negligible information, you may stop the current generation early and record why. Conversely, if the problem is consequential and unstable, you may recommend (not silently perform) a larger population or another generation.
+If the problem is consequential and unstable, you may *recommend* (not silently perform) a larger population or another generation.
 
 ## Setup
 
-1. Capture **SOURCE** and write it to disk. Never replace it with later summaries. Include: original request; explicit constraints; source evidence; required outputs; important definitions; known facts the user supplied.
+1. Capture **SOURCE** and write it to disk. Never replace it with later summaries. Include: original request; explicit constraints; source evidence; required outputs; important definitions; known facts the user supplied. Before spawning G0, list ambiguities in SOURCE whose resolution would change the answer. If one exists and the user is reachable, `ask_user` first — do not spend a population guessing it into `source_invariants`.
 2. Create a run id and a private scratch tree:
 
 ```bash
@@ -166,7 +190,7 @@ Rules:
 - Independent reconstruction beats parroting likely answers.
 ```
 
-Wait until every path has written a non-empty file. A failed path is a missing reconstruction, not a vote for the others. Continue with the survivors if at least two files exist; otherwise report the failure and stop.
+Persist every path as `path-k.md` (child-written on Grok; parent-written from returned markdown on Codex). A failed path is a missing reconstruction, not a vote for the others. Continue with the survivors if at least two files exist; otherwise status `ABORTED_INSUFFICIENT_PATHS` and stop.
 
 Do not let majority opinion influence any generation-0 path. Do not share sibling outputs until this generation is complete.
 
@@ -174,22 +198,36 @@ Do not let majority opinion influence any generation-0 path. Do not share siblin
 
 The parent evaluates. Do **not** ask “what do most paths agree on?”
 
+The parent is a **shared ancestor** of every `state.json`. Path isolation does not make C_t independent. Re-read `source.md` and the previous `state.json` from disk before each convergence; do not evaluate from recollection. `source_invariants` must be quotes or close paraphrases of SOURCE, not the parent’s G0 conclusion. Inferred constraints belong in `constraints.inferred`, which **blind** and **constraint** views drop. Do not treat parent scores as external verification.
+
 Read every `path-k.md`. Build `C_t` and `S_t`. Write `state.json` and `convergence.md`. Then run:
 
 ```bash
 python3 <skill_dir>/scripts/validate_state.py <run_root>/gen-<t>/state.json
 ```
 
+If a previous generation exists:
+
+```bash
+python3 <skill_dir>/scripts/validate_state.py <run_root>/gen-<t>/state.json \
+  --prev <run_root>/gen-<t-1>/state.json \
+  --source <run_root>/source.md \
+  --run-dir <run_root>/gen-<t>
+```
+
+`--source` rejects `source_invariants` that are not literal SOURCE spans. `--run-dir` checks that each `paths[].output_file` exists and is non-empty. `--prev` checks warnings were not silently dropped and that confidence-like scores did not rise without a fidelity gain or a recorded warning.
+
 If validation fails, repair `state.json` before spawning the next generation.
 
-The script prints `STRUCTURAL_OK` on success. That means the JSON has the required keys and types. It is **not** evidence of reconstructability, fidelity, false-attractor resistance, or that the method worked. Do not raise confidence because the validator passed.
+The script prints `STRUCTURAL_OK` on success. That means the JSON has the required keys and types, plus cheap cross-field rules. It is **not** evidence of reconstructability, fidelity, false-attractor resistance, or that the method worked. Do not raise confidence because the validator passed.
 
 Required keys: `scripts/validate_state.py` (`REQUIRED_TOP`). Meanings: `references/architecture.md`. Score keys and stop tests: `references/scoring.md`.
 
 `C_t` must also include these content fields:
 
-- **source_invariants** — anchored in SOURCE
-- **conserved_findings** — independently reconstructed by several paths, with path ids; popularity is not proof
+- **source_invariants** — `{statement, source_span}` where `source_span` is a literal substring of `source.md`. A G0 conclusion is not an invariant; put it in `conserved_findings`.
+- **paths** — roster `[{id, role, view, output_file}]` for this generation. Required at generation ≥ 1.
+- **conserved_findings** — independently reconstructed by several paths, with path ids and `support`; popularity is not proof. Optional `recovered_under` (`g0` / `blind` / `constraint` / …). `support: reconstructed` at generation ≥ 1 requires `recovered_under: blind`.
 - **disagreements** — material differences, preserved
 - **minority_findings** — one- or two-path findings; they may expose a majority assumption
 - **uncertainty** — genuine unresolved uncertainty
@@ -203,6 +241,8 @@ Required keys: `scripts/validate_state.py` (`REQUIRED_TOP`). Meanings: `referenc
 - **score**
 - **stability**
 - **recommended_next_action**
+- **error_correlation_risk** — `high` unless models or sampling were mixed (`independence: "full"` is context isolation, not error independence)
+- **delta_from_previous** — required at generation > 0: `{dropped, added, reclassified}`
 
 **Consensus is not truth.** Population agreement means the conclusion is stable *in this population*. Paths may share a training bias, a mistaken premise, an ambiguous reading, a source omission, or an inherited ancestor. Prefer independently reconstructable, source-supported claims over popular ones.
 
@@ -218,7 +258,9 @@ Minimum dimensions (0.0–1.0 or qualitative if numbers would fake precision): f
 
 Do not reward diversity approaching zero. Classify important claims as `VERIFIED_STABLE`, `RECONSTRUCTED_STABLE`, `MIXED_STABLE`, `INHERITED_STABLE`, or `UNSTABLE`. Verified and reconstructed beat inherited.
 
-If a score rises, name the information gain. Agreement-only is not information gain.
+If a **confidence-like** score rises (fidelity, coherence, provenance_integrity, constraint_satisfaction, cross_order_consistency, reconstructability), name the information gain. Agreement-only is not information gain. Do not treat a rise in `uncertainty` as a confidence increase — uncertainty is lower-better. `diversity` is non-monotone.
+
+At generation 0, path agreement is `MIXED_STABLE` at best. `RECONSTRUCTED_STABLE` requires recovery at generation ≥ 1 by a path whose view omitted the claim (`blind`, or `constraint` only as mixed). `VERIFIED_STABLE` always needs a cited tool or SOURCE span.
 
 ## Retention ↔ Fresh Actualisation
 
@@ -236,14 +278,23 @@ Pairing is a hypothesis. Promote to ternary/higher arity only if an important th
 
 ## Recursive generation
 
-Default mix for N=5 (counts scale with N; they are defaults, not laws):
+Default mix is **one algorithm** for every N ≥ 2 (`scripts/project_state_view.py` `ROLE_SEQUENCE`):
 
-| Count | Role | Lean | Path-facing view |
-|------:|------|------|------------------|
-| 2 | Source-heavy reconstruction from SOURCE + hard constraints + verified evidence | Fresh Actualisation | `constraint` |
-| 1 | Retained-structure using strongly supported prior discoveries, relationships, provenance, constraints | Retention | `retained` |
-| 1 | Dissent/minority: disagreements, minority hypotheses, discarded alternatives, hidden assumptions, possible dominant-path errors. Not contrarian for its own sake. | Mix | `dissent` |
-| 1 | Full-state reconstruction from the complete bounded `C_t`, preserving uncertainty | Mix | `full` |
+`blind`, `dissent-minority`, `source-heavy`, `retained-structure`, `full-state`, then repeat.
+
+N=5 is therefore: 1 blind, 1 dissent, 1 source-heavy (constraint view), 1 retained, 1 full-state.
+
+- **blind** — SOURCE + hard/soft constraints only. The reconstructability probe. Lean: Fresh Actualisation.
+- **source-heavy / constraint** — SOURCE + constraints + open questions (still names prior hypotheses). Lean: Fresh Actualisation.
+- **retained-structure** — conserved findings + provenance, not scores.
+- **dissent-minority** — disagreements and minority findings as tests, not contrarian for its own sake.
+- **full-state** — complete `C_t`, still not a verdict.
+
+Project a `blind` view as well:
+
+```bash
+python3 <skill_dir>/scripts/project_state_view.py <run_root>/gen-<t>/state.json --view blind --out <run_root>/gen-<t>/view-blind.json
+```
 
 Every recursive path receives **SOURCE** plus a **role-specific view**, never sibling answers, never a canonical winner paragraph.
 
@@ -268,7 +319,7 @@ Recursive prompt: use the template in `references/architecture.md`. Substitute S
 
 Before spawning generation t+1, ask: what remains unresolved, what kind of path could resolve it, is new independent reconstruction useful, is external evidence required instead, is uncertainty irreducible from the supplied information? If another generation would only repeat inherited reasoning, stop and say so.
 
-Do not stop after one apparently stable transition. Prefer stability across **two consecutive** transitions.
+Two consecutive stable transitions are a **precondition for `STABLE_HIGH_CONFIDENCE` only**. A run may stop earlier with another status (including `SETTLED_BY_VERIFICATION`, `BLOCKED_NEED_EXTERNAL_EVIDENCE`, `ask_user`, or `ABORTED_INSUFFICIENT_PATHS`). The G0→G1 transition is not eligible as a stable transition (role mix changes the measuring instrument).
 
 Stopping requires all of:
 
@@ -287,6 +338,9 @@ Completion status (exactly one):
 - `PREMATURE_CONVERGENCE`
 - `NON_CONVERGENT`
 - `MAX_DEPTH_REACHED` — do not fake convergence because the cap was hit
+- `SETTLED_BY_VERIFICATION` — a test, log, or hard constraint resolved the question
+- `BLOCKED_NEED_EXTERNAL_EVIDENCE`
+- `ABORTED_INSUFFICIENT_PATHS`
 
 Numeric stability alone is insufficient. Distinguish **inadmissible diversity** (contradiction, error, violated hard constraints) from **admissible diversity** (interpretations still compatible with evidence). Reduce the former; do not erase the latter.
 
@@ -300,24 +354,16 @@ If the original task requires a code or document change, implement **after** ana
 
 ## Output
 
-Unless the user passed `--diagnostics` or asked for the machinery, lead with the answer.
+Lead with the answer, then **always** emit: `completion_status`, `independence`, generations run, approximate cost (path invocations; tokens/wall-clock if known), and any `false_attractor_warnings`. Do not hide warnings behind `--diagnostics`.
+
+`--diagnostics` adds only the eight-dimension score vector and extra population mechanics.
 
 Normal response:
 
 1. Best-supported answer
 2. Important qualifications / remaining uncertainty
 3. Relevant alternatives if still unresolved
-4. Concise stability assessment when useful
-
-Then a compact summary:
-
-- population size and generations performed
-- independence (`full` or `reduced`)
-- stabilization status
-- fidelity and reconstructability
-- remaining uncertainty and meaningful dissent
-- false-attractor warnings, if any
-- whether further reasoning is likely to add value
+4. Always-on status block (status, independence, generations, cost, warnings)
 
 Do not expose private chain-of-thought. Summarize paths, findings, evidence, assumptions, and contrasts.
 
@@ -335,4 +381,4 @@ Keep raw trajectories on disk for audit. Do not dump every path into the user re
 8. Prefer falsification of the dominant conclusion over confirmation.
 9. Use the lowest adequate reasoning arity.
 10. Stop when further reasoning stops adding information.
-)
+

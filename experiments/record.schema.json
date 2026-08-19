@@ -12,40 +12,75 @@
     "generations",
     "independence",
     "final_answer",
-    "diagnostics"
+    "ground_truth",
+    "matches_ground_truth",
+    "completion_status",
+    "cost",
+    "graded_by"
   ],
   "properties": {
-    "schema_version": { "type": "string", "const": "0.1.0" },
+    "schema_version": { "type": "string", "const": "0.2.0" },
     "task_id": { "type": "string" },
     "source_hash": { "type": "string" },
     "condition": {
       "type": "string",
-      "description": "single-path | majority | one-shot-synthesis | multipath-g0 | multipath-recursive | multipath-full-state-leak | other"
+      "enum": [
+        "single-path",
+        "single-path-compute-matched",
+        "single-path-same-section-skeleton",
+        "majority",
+        "one-shot-synthesis",
+        "multipath-g0",
+        "multipath-recursive",
+        "multipath-full-state-leak",
+        "recursive-fresh-evaluator-per-generation",
+        "homogeneous-models",
+        "mixed-models"
+      ]
     },
     "model": { "type": "string" },
+    "model_mix": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
     "model_settings": { "type": "object" },
     "population_size": { "type": "integer", "minimum": 1 },
     "generations": { "type": "integer", "minimum": 1 },
     "independence": { "enum": ["full", "reduced"] },
+    "error_correlation_risk": { "enum": ["high", "medium", "low"] },
     "constraint_view_used": { "type": "boolean" },
+    "blind_view_used": { "type": "boolean" },
+    "project_mutated": { "type": "boolean" },
     "artifact_dir": { "type": "string" },
     "final_answer": { "type": "string" },
     "ground_truth": { "type": ["string", "null"] },
     "matches_ground_truth": { "type": ["boolean", "null"] },
+    "admissible_set_contains_ground_truth": { "type": ["boolean", "null"] },
     "completion_status": {
       "enum": [
         "STABLE_HIGH_CONFIDENCE",
         "STABLE_WITH_UNCERTAINTY",
         "PREMATURE_CONVERGENCE",
         "NON_CONVERGENT",
-        "MAX_DEPTH_REACHED"
+        "MAX_DEPTH_REACHED",
+        "SETTLED_BY_VERIFICATION",
+        "BLOCKED_NEED_EXTERNAL_EVIDENCE",
+        "ABORTED_INSUFFICIENT_PATHS"
       ]
+    },
+    "graded_by": {
+      "type": "object",
+      "required": ["who", "blind_to_condition"],
+      "properties": {
+        "who": { "type": "string" },
+        "blind_to_condition": { "type": "boolean" }
+      }
     },
     "false_attractor_warnings": {
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["code"],
+        "required": ["code", "detail"],
         "properties": {
           "code": { "type": "string" },
           "detail": { "type": "string" }
@@ -54,23 +89,15 @@
     },
     "diagnostics": {
       "type": "object",
-      "description": "Parent-assigned diagnostics, not probabilities.",
-      "required": [
-        "fidelity",
-        "coherence",
-        "uncertainty",
-        "diversity",
-        "provenance_integrity",
-        "constraint_satisfaction",
-        "cross_order_consistency",
-        "reconstructability"
-      ],
+      "description": "Parent-assigned diagnostics. Optional. Do not use as an experimental outcome measure; they are produced by the system under test.",
       "additionalProperties": true
     },
     "cost": {
       "type": "object",
+      "required": ["tokens"],
       "properties": {
-        "tokens": { "type": ["integer", "null"] },
+        "tokens": { "type": "integer" },
+        "path_invocations": { "type": "integer" },
         "wall_clock_s": { "type": ["number", "null"] }
       }
     },

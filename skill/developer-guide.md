@@ -10,18 +10,36 @@ A practical guide to recursive, independent LLM reasoning.
 
 This file is the human-facing guide. The agent procedure lives in `SKILL.md`. Operational schemas live under `references/`.
 
-## Using this installation (Grok Build)
+## Harness notes (install vs method)
+
+The method in this guide is platform-independent. Host-specific invocation, permissions, and audit-file ownership live here so they are not mixed into the theory sections.
+
+Install path is always a copy of this `skill/` tree. Landscape notes for nearby repos live in the source repository: [docs/system-landscape.md](https://github.com/gellsmore-svg/multipath-reasoning/blob/main/docs/system-landscape.md) (that file is **not** shipped inside an installed skill tree).
+
+Forbidden keys for source-heavy and blind views are defined once in `scripts/project_state_view.py` as `VERDICT_KEYS`. Do not maintain a second list here.
+
+### Grok Build
+
+Install: `~/.grok/skills/multipath-reasoning/`.
 
 ```
 /multipath-reasoning <task>
 /multipath-reasoning --population 5 --max-generations 5 --diagnostics <task>
 ```
 
-Also `/skills multipath-reasoning`. Grok can invoke the skill automatically when the task is difficult, ambiguous, or failure-sensitive.
+Also `/skills multipath-reasoning`. If the skill self-invokes, it must state N and the 15–25 path-invocation cost before spawning.
 
-The method itself is platform-independent. This section only describes the Grok skill installed at `~/.grok/skills/multipath-reasoning/`.
+**Audit ownership:** the child writes `path-k.md`. Use `read-write` (or a full toolset when a shell is required); never `read-only` or `execute`. Paths are prompted to write only their audit file and not to edit the project.
 
-On this host, generation paths must write an audit file. The skill therefore uses `read-write` (or a full toolset when a shell is required), never `read-only` or `execute`, which cannot write that file. Paths are prompted to write only their audit file and not to edit the project.
+### Codex
+
+Install: Codex’s skill directory (commonly `~/.codex/skills/multipath-reasoning/` or the project `.codex/skills/` tree).
+
+**Audit ownership:** children return markdown; the **parent** writes `path-k.md`. Do not wait for Codex children to create audit files.
+
+### Other hosts / no isolated subagents
+
+Substitute the strongest isolated child-session primitive. If none exists, mark `independence: "reduced"` and `error_correlation_risk: "high"` before G0. Cheap tasks may proceed; high-consequence tasks should tell the user isolation is unavailable. In reduced mode, no claim may be classed `RECONSTRUCTED_STABLE`.
 
 ## Contents
 
@@ -327,11 +345,15 @@ A practical default population is five paths.
 
 The first generation should be as independent as the host platform allows.
 
-For later generations, a useful default mix is:
+For later generations, a useful default mix (`ROLE_SEQUENCE` in `scripts/project_state_view.py`) is:
 
-### Two source-heavy reconstruction paths
+### One blind reconstruction path
 
-These start primarily from the original source, hard constraints, and verified evidence. They receive a **constraint view** of the admissibility state — not the previous generation’s conserved findings or scores — so they can test whether important claims reconstruct independently. They lean strongly toward Fresh Actualisation.
+SOURCE plus hard/soft constraints only. This is the reconstructability probe. It does not receive prior hypotheses, disagreements, or conserved findings.
+
+### One source-heavy reconstruction path
+
+These start primarily from the original source, hard constraints, and verified evidence. They receive a **constraint view** of the admissibility state — constraints plus open questions, still able to name prior hypotheses, but not conserved findings or scores. That is a hypothesis-test, not a blind reconstruction. They lean strongly toward Fresh Actualisation. The keys stripped from this view are `VERDICT_KEYS` in `scripts/project_state_view.py`.
 
 ### One retained-structure path
 
@@ -347,7 +369,7 @@ Its job is not to be argumentative. Its job is to ensure that useful dissent has
 
 This receives the complete bounded admissibility state and attempts the strongest overall reconstruction while preserving legitimate uncertainty.
 
-The 2/1/1/1 split is a default, not a law.
+The 1/1/1/1/1 split (blind, dissent, source-heavy, retained, full-state) is a default, not a law. Extra slots at other N repeat that sequence.
 
 ## 10. Reconstructability
 
@@ -557,8 +579,11 @@ Useful final statuses include:
 | `PREMATURE_CONVERGENCE` | Agreement stabilized without adequate independent support |
 | `NON_CONVERGENT` | Materially different admissible results continue to appear |
 | `MAX_DEPTH_REACHED` | The configured recursion limit was reached |
+| `SETTLED_BY_VERIFICATION` | A test, log, or hard constraint resolved the question |
+| `BLOCKED_NEED_EXTERNAL_EVIDENCE` | Remaining uncertainty is not resolvable from supplied information |
+| `ABORTED_INSUFFICIENT_PATHS` | Fewer than two path files survived |
 
-A maximum generation count should always exist. Five generations is a sensible initial default for experiments.
+Two consecutive stable transitions are a precondition for `STABLE_HIGH_CONFIDENCE` only. A run may stop earlier with another status. A maximum generation count should always exist. Five generations is a sensible initial default for experiments. Default cost at N=5 is 15 path invocations to satisfy that test, 25 at the cap.
 
 ## 19. Bounded recursive state
 
@@ -592,7 +617,7 @@ recommended_next_action
 paired_balance
 ```
 
-Recursive paths receive a **view** of that file, not always the whole thing. Source-heavy paths must not be shown `conserved_findings`, `score`, `stability`, or `recommended_next_action`.
+Recursive paths receive a **view** of that file, not always the whole thing. Blind and source-heavy views omit every key in `VERDICT_KEYS` (`scripts/project_state_view.py`). Do not fork that list here.
 
 `scripts/validate_state.py` checks that the JSON has the required keys. That is a schema check, not a proof that reasoning escaped a false attractor.
 
@@ -784,7 +809,7 @@ The quality of path independence should be recorded because it affects the meani
 
 Multipath Reasoning is a standalone reasoning specification. It must not require Deborah or Hoglah.
 
-Inspected repos (see `docs/system-landscape.md`) do **not** support a current stack “Multipath → Deborah runtime → Hoglah execution.”
+Inspected repos (see [docs/system-landscape.md](https://github.com/gellsmore-svg/multipath-reasoning/blob/main/docs/system-landscape.md) in the source repository — that file is not part of the installed skill tree) do **not** support a current stack “Multipath → Deborah runtime → Hoglah execution.”
 
 - **Deborah** is a human-readable **process language** (Cairn documents). Its README states it is not a device for turning stochastic steps into pure functions. A future `.cairn.md` description of a Multipath run would be optional.
 - **Hoglah** is a local-first **job queue** for LLM inference. A future orchestrator could enqueue path jobs there. That would be execution, not Multipath semantics.
@@ -896,7 +921,7 @@ That is legitimate convergence.
 - Are minority findings retained?
 - Is provenance preserved?
 - Is the next generation inheriting constraints rather than one canonical answer (or a full `state.json` that already names the answer)?
-- Did source-heavy paths reconstruct without being shown conserved findings?
+- Did a blind path reconstruct without being shown prior hypotheses or conserved findings?
 - Can dominant claims be reconstructed independently?
 - Is confidence increasing for a real reason?
 
@@ -918,7 +943,7 @@ Multipath Reasoning is designed around a simple problem:
 
 A single plausible LLM answer can be wrong, and several agreeing LLM answers can still share the same mistake.
 
-The method therefore combines independent reasoning, structured convergence, admissibility, provenance, recursive reconstruction, confidence diagnostics, false-attractor resistance, cross-order consistency, reconstructability, and Retention ↔ Fresh Actualisation.
+The method therefore combines independent reasoning, structured convergence, admissibility, provenance, recursive reconstruction, confidence diagnostics, path-inheritance false-attractor resistance (the parent remains a shared ancestor), cross-order consistency, reconstructability, and Retention ↔ Fresh Actualisation.
 
 Its central principles are:
 

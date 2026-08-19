@@ -18,7 +18,7 @@ Multipath Reasoning must remain useful even if that research later changes a gre
 6. Convergence was recast as an **admissibility-state update**: pass constraints and open alternatives, not “here is the answer to inherit.”
 7. The loop became recursive, with **diagnostic dimensions** instead of one confidence percentage.
 8. **Reconstructability** and **cross-order consistency** were added: can the claim be recovered without being told it, and does it still hold at the next structural level?
-9. Paired-operator experiments (deliberately trying to falsify “everything is a pair”) produced **Retention ↔ Fresh Actualisation** as a *supported experimental primitive*, not a universal law. Balance, not 50/50. Promote arity when a pair loses fidelity.
+9. Paired-operator experiments (deliberately trying to falsify “everything is a pair”) produced **Retention ↔ Fresh Actualisation** as a *hypothesis carried over from prior exploratory work, unvalidated in this repository* — not a universal law. Balance, not 50/50. Promote arity when a pair loses fidelity.
 10. The resulting process was general enough to live in its own repository, installable as a skill, independent of Deborah, Hoglah, or the substrate sandbox.
 
 ## What this document is not

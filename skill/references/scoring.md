@@ -6,18 +6,22 @@ Diagnostic only. Numbers in 0.0–1.0 are **not** probabilities unless a real ca
 
 ## Dimensions
 
-| Key | Question |
-|-----|----------|
-| `fidelity` | How faithfully the candidate stays anchored to the original request, SOURCE evidence, known facts, and explicit constraints. |
-| `coherence` | Internal consistency of the candidate reasoning and of the population. |
-| `uncertainty` | How much *material* uncertainty remains (higher = more unresolved). |
-| `diversity` | Meaningful variation among *admissible* paths. Do not automatically reward diversity approaching zero. |
-| `provenance_integrity` | Whether important conclusions remain traceable to evidence and reasoning origins. |
-| `constraint_satisfaction` | How fully hard and soft constraints are met. |
-| `cross_order_consistency` | Consistency across structural levels (see `references/architecture.md`). |
-| `reconstructability` | Whether important conclusions can be independently recovered from SOURCE and admissible constraints without copying previous conclusions. Especially important. |
+| Key | Polarity | Question |
+|-----|----------|----------|
+| `fidelity` | higher-better | How faithfully the candidate stays anchored to the original request, SOURCE evidence, known facts, and explicit constraints. |
+| `coherence` | higher-better | Internal consistency of the candidate reasoning and of the population. |
+| `uncertainty` | lower-better | How much *material* uncertainty remains (higher = more unresolved). A rise is usually information, not confidence. |
+| `diversity` | non-monotone | Meaningful variation among *admissible* paths. Do not automatically reward diversity approaching zero. |
+| `provenance_integrity` | higher-better | Whether important conclusions remain traceable to evidence and reasoning origins. |
+| `constraint_satisfaction` | higher-better | How fully hard and soft constraints are met. |
+| `cross_order_consistency` | higher-better | Consistency across structural levels (see `references/architecture.md`). |
+| `reconstructability` | higher-better | Whether important conclusions can be independently recovered from SOURCE and admissible constraints without copying previous conclusions. Especially important. |
 
-Values: number in [0, 1], or a qualitative string (`low` / `medium` / `high`, or equivalent) when numbers would imply false precision. Mixed vectors are allowed (some numeric, some qualitative).
+**Confidence-like set** (higher-better): `fidelity`, `coherence`, `provenance_integrity`, `constraint_satisfaction`, `cross_order_consistency`, `reconstructability`.
+
+When a *confidence-like* score increases, name the information gain. Do **not** apply that rule to `uncertainty` (lower-better) or `diversity` (non-monotone). The ≈ 0.02 stability threshold applies to confidence-like numeric dimensions.
+
+Values: number in [0, 1], or a qualitative string (`low` / `medium` / `high`, or equivalent) when numbers would imply false precision. Mixed vectors are allowed (some numeric, some qualitative). `fidelity`, `reconstructability`, and `constraint_satisfaction` cannot be `"unknown"`.
 
 Coherence rising while fidelity does not is a warning, not success.
 
@@ -34,6 +38,23 @@ For important claims, use exactly these labels:
 | `UNSTABLE` | Changes materially across independent reconstructions. | Weak |
 
 Treat verified and reconstructed as substantially stronger than inherited. Inherited stability is a reason to run Fresh Actualisation, not a reason to raise confidence.
+
+### Derivation rules
+
+- Generation 0: path agreement is `MIXED_STABLE` at best. `reconstructed_stable_claims` must be empty. `VERIFIED_STABLE` still requires a cited tool or a SOURCE span.
+- `RECONSTRUCTED_STABLE` requires recovery at generation ≥ 1 by a path whose view omitted the claim (`recovered_under: "blind"`). Recovery under `constraint` is `MIXED_STABLE` at best.
+- Reduced independence: no claim may be classed `RECONSTRUCTED_STABLE`.
+
+### `support` assignment (`conserved_findings[].support`)
+
+| `support` | When to assign | Eligible stability class |
+|-----------|----------------|--------------------------|
+| `source` | Claim is a quote or close paraphrase of SOURCE, or a tool read of SOURCE-named evidence | `VERIFIED_STABLE` |
+| `constraint` | Claim is required by a hard constraint the user or SOURCE stated | `VERIFIED_STABLE` |
+| `reconstructed` | Recovered at generation ≥ 1 under the `blind` view (or recorded as G0 independent naming, which does **not** promote the stability class) | `RECONSTRUCTED_STABLE` only if `recovered_under: "blind"` and generation ≥ 1 |
+| `agreement-only` | Multiple paths said it and the support is popularity, a shared premise, or an inherited view | never `VERIFIED_STABLE` or `RECONSTRUCTED_STABLE` |
+
+`len(paths) >= 2` is required for `reconstructed` and `agreement-only`. The validator maps `stability.verified_stable_claims` to findings with `support` in `{source, constraint}` and `reconstructed_stable_claims` to findings with `support: reconstructed`.
 
 ## Information gain
 
@@ -76,19 +97,26 @@ See also `references/failure-modes.md`.
 
 Exactly one of:
 
-- `STABLE_HIGH_CONFIDENCE` — evidence, reconstruction, and constraint satisfaction support the result
-- `STABLE_WITH_UNCERTAINTY` — process has stabilized; legitimate alternatives remain
+- `STABLE_HIGH_CONFIDENCE` — evidence, reconstruction, and constraint satisfaction support the result; requires at least one verified or reconstructed claim and no unresolved attractor warning
+- `STABLE_WITH_UNCERTAINTY` — process has stabilized; legitimate alternatives remain (requires non-empty `admissible_alternatives`)
 - `PREMATURE_CONVERGENCE` — agreement stabilized but independence/fidelity did not
-- `NON_CONVERGENT` — materially different admissible results continue to arise
+- `NON_CONVERGENT` — materially different admissible results continue to arise (cannot combine with `action: stop`)
 - `MAX_DEPTH_REACHED` — cap hit before legitimate stabilization; do not fake convergence
+- `SETTLED_BY_VERIFICATION` — a test, log, or hard constraint resolved the question
+- `BLOCKED_NEED_EXTERNAL_EVIDENCE` — remaining uncertainty is not resolvable from supplied information
+- `ABORTED_INSUFFICIENT_PATHS` — fewer than two path files survived
+
+`recommended_next_action.action` is one of `spawn_next_generation`, `stop`, `need_external_evidence`, `ask_user`.
 
 ## Stop test
 
-Default numeric threshold: **≈ 0.02** absolute change on each *numeric* diagnostic dimension. Qualitative dimensions are stable when the label does not change.
+Two consecutive stable transitions are a **precondition for `STABLE_HIGH_CONFIDENCE` only**. A run may stop earlier with another status. The G0→G1 transition is not eligible as a stable transition (the role mix changes the measuring instrument).
 
-Do not stop after one apparently stable transition. Prefer **two consecutive** transitions that pass.
+If another generation would only repeat inherited reasoning, stop and report that — this adaptive skip outranks the two-transition preference.
 
-All of the following must hold:
+Default numeric threshold: **≈ 0.02** absolute change on each *numeric confidence-like* dimension. Qualitative dimensions are stable when the label does not change. Do not apply the 0.02 test to `uncertainty` or `diversity` as if a drop were failure.
+
+All of the following must hold for `STABLE_HIGH_CONFIDENCE`:
 
 1. Score stability (threshold above, where numeric)
 2. Relational/structural stability (the explanation is not still drifting)

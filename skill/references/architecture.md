@@ -38,6 +38,10 @@ Full independence requires all of:
 
 Mark `independence: "full"` only when those hold. Sequential in-parent simulation is `reduced`.
 
+`independence: "full"` means **context isolation**, not error independence. Homogeneous same-model samples still share training priors. Record `error_correlation_risk: "high"` unless models or sampling settings were deliberately mixed.
+
+**Reduced mode.** If the host cannot spawn isolated child contexts: mark `independence: "reduced"` and `error_correlation_risk: "high"` before G0. Cheap tasks may proceed. High-consequence tasks should tell the user isolation is unavailable and prefer a smaller N or stop. In reduced mode, no claim may be classed `RECONSTRUCTED_STABLE`, and the user-facing summary must say isolation was simulated.
+
 Do not create different personalities to simulate independence. Generation-0 prompts differ only by `path_id` and `output_path`.
 
 Subagent nesting depth is 1. The parent spawns every generation. Path prompts must forbid `spawn_subagent`.
@@ -50,7 +54,14 @@ Include: original request, explicit constraints, source evidence, required outpu
 
 ## Path output contract
 
-Each path writes `path-k.md` with the sections listed in `SKILL.md` (proposed solution through potential failure modes). Raw files stay in `gen-t/` for audit. They are **not** forwarded wholesale into the next generation’s prompts.
+Host-neutral: every path’s output is persisted as `gen-${t}/path-${k}.md` with the sections listed in `SKILL.md`. Raw files stay on disk for audit. They are **not** forwarded wholesale into the next generation’s prompts.
+
+Who writes the file is host-specific:
+
+- **File-writing hosts (Grok):** the child writes the file; parent waits for a non-empty file.
+- **Return-markdown hosts (Codex and similar):** the child returns markdown; the **parent** writes `path-k.md`. Do not wait for the child to create the file.
+
+Record a `paths` roster on `state.json`: `[{id, role, view, output_file}]`. At generation ≥ 1 the roster is required. `validate_state.py --run-dir` checks that those files exist.
 
 ## Admissibility state (`state.json`)
 
@@ -61,10 +72,12 @@ Pass forward an admissibility state, not a canonical answer. It must constrain f
 | Field | Meaning |
 |-------|---------|
 | `generation` | Integer t, 0-based. |
-| `population_size` | N actually launched this generation. |
-| `independence` | `"full"` or `"reduced"`. |
-| `source_invariants` | Facts/meanings/constraints/requirements/relationships anchored in SOURCE. |
-| `conserved_findings` | Claims independently reconstructed by several paths. Each item: `claim`, `paths` (ids), `support` (`source` / `constraint` / `reconstructed` / `agreement-only`). Do not treat path-count as proof. |
+| `population_size` | N actually launched this generation. Integer ≥ 2. |
+| `independence` | `"full"` or `"reduced"`. Context isolation, not error independence. |
+| `error_correlation_risk` | `"high"` / `"medium"` / `"low"`. Default `high` for same-model homogeneous samples. |
+| `source_invariants` | `{statement, source_span}` objects. `source_span` must be a literal substring of `source.md`. A parent conclusion is a finding, not an invariant. Free-text strings are accepted only when `--source` is not passed. |
+| `paths` | Roster `[{id, role, view, output_file}]`. Required at generation ≥ 1. Ids must match `conserved_findings[].paths`. |
+| `conserved_findings` | Claims independently reconstructed by several paths. Each item: `claim`, `paths` (ids), `support` (`source` / `constraint` / `reconstructed` / `agreement-only`), optional `recovered_under`. Do not treat path-count as proof. |
 | `disagreements` | Materially different interpretations. Do not erase for neatness. |
 | `minority_findings` | One- or two-path findings. A minority result may expose a majority assumption. |
 | `uncertainty` | Genuine unresolved uncertainty. |
@@ -74,12 +87,15 @@ Pass forward an admissibility state, not a canonical answer. It must constrain f
 | `failure_modes` | Contradictions, unsupported assumptions, probable hallucinations found in evaluation. |
 | `forbidden_collapses` | Claims that must not be treated as settled (including unresolved alternatives). |
 | `false_attractor_warnings` | Codes from `references/scoring.md`. Empty array if none. |
-| `paired_balance` | `retention`, `fresh_actualisation` (each a 0–1 diagnostic or qualitative string), `rationale`, `next_adjustment`. |
-| `score` | Diagnostic vector; keys in `references/scoring.md`. |
+| `paired_balance` | `retention` and `fresh_actualisation` (each 0–1 or qualitative), `rationale`, `next_adjustment`. Optional `next_allocation` of role counts summing to N. These are the intended next-generation mix, not a measured law. |
+| `score` | Diagnostic vector; keys and polarity in `references/scoring.md`. |
 | `stability` | `status` plus claim buckets: `verified_stable_claims`, `reconstructed_stable_claims`, `mixed_stable_claims`, `inherited_stable_claims`, `unstable_claims`. |
-| `recommended_next_action` | `spawn_next_generation`, `stop`, or `need_external_evidence`, plus a short `reason`. |
+| `recommended_next_action` | `spawn_next_generation`, `stop`, `need_external_evidence`, or `ask_user`, plus a short `reason`. `spawn_next_generation` also needs `next_generation_justification`. |
+| `delta_from_previous` | Required at generation > 0: `{dropped, added, reclassified}`. |
 
-Optional but useful: `previous_score` (copy of S_{t-1} for delta tests).
+Optional: `previous_score` (required at generation > 0), `project_mutated`, `distinct_solutions`, `error_correlation_risk`.
+
+The parent is a **shared ancestor** of every `state.json`. Re-read `source.md` and the previous state from disk before each convergence. Do not treat parent scores as external verification.
 
 Keep lists bounded. Merge duplicates. Drop stale hypotheses that failed reconstruction and are not needed as negative provenance.
 
@@ -97,18 +113,29 @@ Which keys each view contains is defined in `scripts/project_state_view.py` (`VI
 
 | View | Used by | Intent |
 |------|---------|--------|
-| `constraint` | source-heavy | SOURCE + constraints + open questions. **No** conserved findings, scores, stability, next-action, paired balance, or provenance. This is the reconstructability test. |
+| `blind` | reconstructability probe | SOURCE + hard/soft constraints only. Drops `constraints.inferred` and every open-question field. This is the reconstructability test. |
+| `constraint` | source-heavy | SOURCE + constraints + open questions. **No** conserved findings, scores, stability, next-action, paired balance, or provenance. Drops `constraints.inferred`. A constrained hypothesis-test, not a blind reconstruction — it can still name prior hypotheses. |
 | `retained` | retained-structure | Constraints plus conserved findings and provenance. Still omits scores, stability status, and next-action. |
 | `dissent` | dissent/minority | Disagreements, minority findings, failure modes, plus conserved findings as *targets to test*, not as the answer. Omits scores/status/next-action. |
 | `full` | full-state | Complete `state.json`. Prompt must still say it is not a verdict. |
 
-A constraint view that still contains a verdict key is invalid. The projector refuses to emit it.
+A constraint or blind view that still contains a verdict key is invalid. `constraint_view_is_clean()` is a key-level check for **hand-built** payloads; projector output cannot trip it by construction. Use `project_state_view.py --check`. Content smuggling into `source_invariants` is a parent-discipline issue; `--source` is the mechanical guard.
+
+`blind` and `constraint` views drop `constraints.inferred`.
 
 ## Default recursive mix
 
-For N=5, the mix in `SKILL.md` applies. For other N, keep at least one source-heavy path, one dissent/minority path, and one retained-structure path when N ≥ 3. Extra slots go to source-heavy reconstruction first (`constraint` view).
+Single algorithm: `scripts/project_state_view.py` `ROLE_SEQUENCE`.
+
+`blind`, `dissent-minority`, `source-heavy`, `retained-structure`, `full-state`, then repeat.
+
+N=5 is therefore: 1 blind, 1 dissent, 1 source-heavy (constraint view), 1 retained, 1 full-state. N=2 is blind + dissent. Do not invent a second mix that scales 2/1/1/1 or drops full-state.
 
 Role prompts differ by **which view file they receive**, not by personality. They still receive the same SOURCE. They must not receive sibling `path-*.md` files.
+
+### Blind prompt addendum
+
+Reason from SOURCE and hard/soft constraints only. You are not given prior hypotheses, disagreements, or conserved findings. If a conclusion is true, recover it from SOURCE. Do not assume a dominant prior answer exists.
 
 ### Source-heavy prompt addendum
 
@@ -166,7 +193,7 @@ SOURCE (verbatim):
 PATH-FACING STATE VIEW (not the full parent state; NOT the answer):
 <view-*.json for this role>
 
-Your assigned role: <source-heavy | retained-structure | dissent-minority | full-state>
+Your assigned role: <blind | source-heavy | retained-structure | dissent-minority | full-state>
 <role addendum>
 
 Reconstruct the problem. Keep a retained claim only if you independently recover it

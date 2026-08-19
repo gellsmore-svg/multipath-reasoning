@@ -46,7 +46,8 @@ source.md                         # persistent original; never replaced by summa
 gen-${t}/path-${k}.md             # raw path audit (parent only)
 gen-${t}/state.json               # full admissibility + scores (parent / audit)
 gen-${t}/convergence.md           # human notes
-gen-${t}/view-constraint.json     # source-heavy
+gen-${t}/view-blind.json          # reconstructability probe
+gen-${t}/view-constraint.json     # source-heavy (hypothesis-test)
 gen-${t}/view-retained.json
 gen-${t}/view-dissent.json
 gen-${t}/view-full.json
@@ -71,11 +72,11 @@ Forbidden:
 
 ## Generation 0
 
-- Default N = 5; skill/spec say ≥ 2. The validator still accepts `population_size ≥ 1`.
+- Default N = 5; skill/spec/validator require ≥ 2.
 - No personas. Diversity is supposed to come from independent reconstruction, not costumes.
-- Each path writes a fixed markdown skeleton (Proposed solution … Potential failure modes).
-- A missing file is a failed reconstruction, not a vote. Continue if at least two files exist.
-- Generation paths **must be able to write** that file. On Grok, `read-only` and `execute` strip the write tool — do not use them here. Research-like tasks: `read-write`. Software/debug: omit `capability_mode` (write + shell). Prompt: write **only** the assigned file; do not list sibling `path-*.md`.
+- Persist every path as `path-k.md` (child-written on Grok; parent-written from returned markdown on Codex).
+- A missing file is a failed reconstruction, not a vote. Continue if at least two files exist; otherwise `ABORTED_INSUFFICIENT_PATHS`.
+- On file-writing hosts, generation paths **must be able to write** that file. On Grok, `read-only` and `execute` strip the write tool — do not use them here. Research-like tasks: `read-write`. Software/debug: omit `capability_mode` (write + shell). Prompt: write **only** the assigned file; do not list sibling `path-*.md`. Re-check the project tree after each generation.
 
 Grok primitive: parallel `spawn_subagent` (`general-purpose`, `background: true`, no `resume_from` / `persona` / `model`), then one wait on all ids (`timeout_ms` up to 600000). Nesting depth is 1; children must not spawn.
 
@@ -85,43 +86,37 @@ Other hosts: substitute the strongest isolated child-session API and keep this p
 
 `state.json` is one object. Required keys: `validate_state.py` `REQUIRED_TOP`. Meanings: `architecture.md`.
 
-Two claim taxonomies coexist; **no mechanical mapping** is specified:
+Two claim taxonomies are **mapped** by `validate_state.py`:
 
 - `conserved_findings[].support` ∈ {`source`, `constraint`, `reconstructed`, `agreement-only`}
-- `stability.*_claims` buckets for `VERIFIED_STABLE` > `RECONSTRUCTED_STABLE` > `MIXED_STABLE` > `INHERITED_STABLE` > `UNSTABLE`
+- `stability.verified_stable_claims` must match a finding with `support` in `{source, constraint}`
+- `stability.reconstructed_stable_claims` must match a finding with `support: reconstructed`, and is forbidden at generation 0
 
 `C_t` and `S_t` are not separate files.
 
-`STRUCTURAL_OK` means the JSON has the required keys and types (plus one cartoon-collapse heuristic that is easy to evade). It is **not** reconstructability, fidelity, or false-attractor resistance. Do not raise confidence because the validator passed.
+`STRUCTURAL_OK` means the JSON has the required keys and types plus cheap cross-field rules (population floor, support↔stability mapping, unresolved-warning stop block, `--source` span check, `--run-dir` path-file existence). It is **not** reconstructability, fidelity, or false-attractor resistance. Do not raise confidence because the validator passed.
 
 ## Path-facing views
 
 Single home for which keys a role may see: `project_state_view.py` (`VIEW_KEYS`, `VERDICT_KEYS`). Do not fork that list here.
 
-Default mix for N = 5 (defaults, **not** a law):
+Default mix: `ROLE_SEQUENCE` = `blind`, `dissent-minority`, `source-heavy`, `retained-structure`, `full-state`, then repeat. N=5 is one of each.
 
-| Count | Role | View |
-|------:|------|------|
-| 2 | Source-heavy (Fresh Actualisation) | `constraint` |
-| 1 | Retained-structure | `retained` |
-| 1 | Dissent / minority | `dissent` |
-| 1 | Full-state | `full` |
+`VERDICT_KEYS` stripped from blind and constraint views: `conserved_findings`, `score`, `stability`, `recommended_next_action`, `paired_balance`, `provenance`. Both also drop `constraints.inferred`.
 
-`VERDICT_KEYS` stripped from the constraint view: `conserved_findings`, `score`, `stability`, `recommended_next_action`, `paired_balance`, `provenance`.
-
-**Honest reconstructability.** The constraint view still includes `disagreements`, `minority_findings`, `failure_modes`, `admissible_alternatives`, and `forbidden_collapses`. Those fields can name prior hypotheses. This is **constrained / hypothesis-testing** reconstruction, not a blind SOURCE-only test. README’s older phrase “no previous answer” is stronger than the code. Architecture’s extra-slot rule for N≠5 (extra slots go source-heavy; keep one of each of source-heavy, dissent, retained when N≥3) is **not** the same algorithm as “scale the 2/1/1/1 table,” and would drop full-state if applied to N=5.
+**Honest reconstructability.** The `blind` view is the reconstructability probe (SOURCE + hard/soft constraints). The `constraint` view still includes open-question fields that can name prior hypotheses; it is a constrained hypothesis-test. `RECONSTRUCTED_STABLE` requires blind recovery at generation ≥ 1.
 
 ## Scoring and stop (prompt-only)
 
 Eight parent-assigned diagnostics in `[0,1]` or `{low,medium,high,none,unknown}`: fidelity, coherence, uncertainty, diversity, provenance_integrity, constraint_satisfaction, cross_order_consistency, reconstructability.
 
-If a score rises, name the information gain. Agreement-only is not gain.
+If a *confidence-like* score rises, name the information gain. Agreement-only is not gain. `uncertainty` is lower-better; `diversity` is non-monotone.
 
-Warning codes: `POSSIBLE_FALSE_ATTRACTOR`, `UNJUSTIFIED_CONFIDENCE_INCREASE`, `PREMATURE_CONVERGENCE`, `INHERITANCE_DOMINATED_STABILITY`, `RECONSTRUCTION_FAILURE`, `PROVENANCE_LOSS`.
+Warning codes: `POSSIBLE_FALSE_ATTRACTOR`, `UNJUSTIFIED_CONFIDENCE_INCREASE`, `PREMATURE_CONVERGENCE`, `INHERITANCE_DOMINATED_STABILITY`, `RECONSTRUCTION_FAILURE`, `PROVENANCE_LOSS`, `DEGENERATE_POPULATION`.
 
 `PREMATURE_CONVERGENCE` is both a mid-loop warning and a completion status. Use the status when the **run** ended that way.
 
-Stop when (all of): two consecutive stable transitions preferred; numeric Δ ≈ 0.02 on numeric dimensions; relational structure stable; fidelity and constraint satisfaction stable or improving; important claims verified or reconstructed, not merely inherited; provenance adequate; no unresolved false-attractor warning that still needs a reconstruction. Adaptive skip if another generation would only repeat inheritance. Do not fake `STABLE_HIGH_CONFIDENCE` because the cap was hit. `STABLE_WITH_UNCERTAINTY` is a legitimate outcome.
+Two consecutive stable transitions are a precondition for `STABLE_HIGH_CONFIDENCE` only. Adaptive skip (another generation would only repeat inheritance) outranks that preference. Extra statuses: `SETTLED_BY_VERIFICATION`, `BLOCKED_NEED_EXTERNAL_EVIDENCE`, `ABORTED_INSUFFICIENT_PATHS`. Do not fake `STABLE_HIGH_CONFIDENCE` because the cap was hit. `STABLE_WITH_UNCERTAINTY` is a legitimate outcome.
 
 **Retention ↔ Fresh Actualisation** is an experimental pair, not 50/50, not a law. Encoded as `paired_balance` plus the default role mix.
 
@@ -130,9 +125,10 @@ Stop when (all of): two consecutive stable transitions preferred; numeric Δ ≈
 | Layer | What exists |
 |-------|-------------|
 | Specified | Full loop, views, scores, stop tests, host rules |
-| Implemented in code | The two scripts, four unit tests, experiment *record* JSON schema |
-| Unenforced (prompt) | Actual independence, that views are used, that verdicts are not smuggled into `source_invariants`, score honesty, stop test, path heading contract, no sibling reads, generation cap |
-| Absent | Orchestrator binary, path-file validator, CI, recorded experiments, other-host adapters, pip-installable skill tree |
+| Implemented in code | The two scripts (schema + cheap cross-field rules, `--source`, `--run-dir`, `--prev`), unit tests, experiment *record* JSON schema 0.2.0 |
+| Unenforced (prompt) | Actual independence, that views are used, score honesty, stop test, path heading contract, no sibling reads, generation cap, project-tree fingerprint |
+| Cheaply checked | `source_span` vs SOURCE (`--source`); path-file existence (`--run-dir`); support↔stability mapping; G0 reconstructed-stable ban; unresolved-warning stop block |
+| Absent | Orchestrator binary, claim-text grep of path files, recorded task experiments, other-host adapters, pip-installable skill tree |
 
 ## How to install
 

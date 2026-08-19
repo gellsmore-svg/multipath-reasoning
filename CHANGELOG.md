@@ -2,10 +2,15 @@
 
 ## [Unreleased]
 
-- Added `docs/technical-description.md` (specified vs implemented wiring).
-- README reconstructability sentence aligned with the actual constraint view.
-- Developer-guide §33 no longer claims Deborah is the current orchestration runtime.
-- Dropped conflicting PEP 639 license classifier from `pyproject.toml`.
+## [0.1.1] — 2026-08-19
+
+- Addressed GitHub issues #1–#23 (process hardening; no recorded task experiments yet).
+- Host-neutral persist contract (Grok child-writes / Codex parent-writes).
+- `blind` view and a single `ROLE_SEQUENCE` mix; constraint view documented as a hypothesis-test.
+- Validator: population ≥ 2, support↔stability mapping, G0 reconstructed-stable ban, unresolved-warning stop block, `--source`, `--run-dir`, `--prev`, paths roster, `ask_user` / extra completion statuses.
+- Score polarity; always-on warnings; cost stated (15–25 path invocations).
+- Experiment schema 0.2.0 requires ground truth, cost, grader blinding; diagnostics optional.
+- False-attractor resistance qualified as path-inheritance only; evaluator-context ancestry documented.
 
 ## [0.1.0] — 2026-08-19
 
@@ -16,3 +21,5 @@ Initial public repository.
 - Structural-only `state.json` validator (`STRUCTURAL_OK` is not a soundness proof)
 - Generation paths required to be able to write audit files
 - Docs: origins, inspected system landscape, specification, install, experiments
+- Added `docs/technical-description.md` (specified vs implemented wiring)
+- Dropped conflicting PEP 639 license classifier from `pyproject.toml`

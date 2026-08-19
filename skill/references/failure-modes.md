@@ -12,7 +12,7 @@ G0 → one synthesis C0 → every G1 path inherits C0 → stronger agreement →
 
 This can raise apparent confidence while propagating an early mistake.
 
-**Prevention:** pass a bounded admissibility state, never a winner paragraph, as the sole ancestor. Do not give every later path the full `state.json`. Source-heavy paths must receive the `constraint` view from `scripts/project_state_view.py` (no conserved findings, scores, or stability status).
+**Prevention:** pass a bounded admissibility state, never a winner paragraph, as the sole ancestor. Do not give every later path the full `state.json`. At least one later path must receive the `blind` view (SOURCE + hard/soft constraints only). Source-heavy paths receive the `constraint` view (hypothesis-testing; may still name prior hypotheses). Both views drop `constraints.inferred`.
 
 **Detection:** `POSSIBLE_FALSE_ATTRACTOR`, `INHERITANCE_DOMINATED_STABILITY`, `UNJUSTIFIED_CONFIDENCE_INCREASE` in `references/scoring.md`.
 
@@ -22,7 +22,7 @@ This can raise apparent confidence while propagating an early mistake.
 
 A claim persists because it was in C_t, not because independent paths recovered it.
 
-**Repair:** run a source-heavy reconstruction on the `constraint` view (no conserved findings). If it fails to recover the claim, reclassify as `UNSTABLE` or `INHERITED_STABLE` and, if it was load-bearing, reopen the question. Do not paste full `state.json` into that prompt.
+**Repair:** run a `blind` reconstruction (SOURCE + hard/soft constraints only). If it fails to recover the claim, reclassify as `UNSTABLE` or `INHERITED_STABLE` and, if it was load-bearing, reopen the question. Do not paste full `state.json` into that prompt. Recovery under the `constraint` view is mixed at best.
 
 ## Premature convergence
 
@@ -95,3 +95,25 @@ Parent-context sequential branches, or paths that saw sibling answers, reported 
 Manufacturing a single clean answer when more than one option remains compatible with evidence.
 
 **Repair:** completion status `STABLE_WITH_UNCERTAINTY`; keep alternatives in the user response.
+
+## Evaluator-context ancestry
+
+Every anti-false-attractor mechanism constrains what **paths** receive. The parent is a single continuous context: it authors SOURCE, reads every path file, writes every `state.json`, assigns diagnostics, raises and clears its own warnings, and writes the final answer. `state_{t+1}` therefore has exactly one ancestor — the same trajectory that produced `state_t`. Path independence does not make C_t independent.
+
+**Detection:** a G0 parent conclusion written into `source_invariants` or `constraints.inferred`; confidence-like scores rising with no fidelity gain and no warning; `delta_from_previous` empty while the answer changed.
+
+**Repair:** re-read `source.md` and the previous `state.json` from disk before each convergence; require `{statement, source_span}` invariants; drop inferred constraints from blind/constraint views; record `delta_from_previous`; optional one-shot blind audit child given only SOURCE plus the final answer.
+
+This is why README claims **path-inheritance** false-attractor resistance, not evaluator independence.
+
+## Degenerate population
+
+N ≥ 3 paths produced one distinct solution, with no reduced-independence flag.
+
+**Repair:** record `DEGENERATE_POPULATION`; do not treat agreement as reconstruction. Increase Fresh Actualisation / blind slots, or mix models.
+
+## Context isolation reported as error independence
+
+`independence: "full"` records that children did not see siblings. Same-model samples still share training priors.
+
+**Repair:** record `error_correlation_risk: "high"` unless models or sampling were mixed. Do not treat reconstructability as independent of shared pretraining.

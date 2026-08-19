@@ -1,8 +1,8 @@
 # Multipath Reasoning
 
-**Status:** experimental (v0.1.0) · **License:** Apache-2.0
+**Status:** experimental (v0.1.1) · **License:** Apache-2.0
 
-Recursive multipath reasoning for LLMs: independent reconstruction, admissibility, provenance, false-attractor resistance, and confidence stabilization.
+Recursive multipath reasoning for LLMs: independent reconstruction, admissibility, provenance, path-inheritance false-attractor resistance, and confidence stabilization. The evaluator (parent session) remains a shared ancestor of every `state.json`.
 
 A single fluent model answer can be wrong. Several agreeing answers can still share one mistake. Multipath Reasoning treats that as an engineering problem, not a voting problem.
 
@@ -70,16 +70,17 @@ Inherited stability is weaker than reconstructed stability.
 
 Then evaluate into `state.json`. A schema check (`STRUCTURAL_OK`) only means the JSON has the required keys. It is **not** proof that the method worked.
 
-**Later generations (default mix, not a law):**
+**Later generations (default mix, `ROLE_SEQUENCE`, not a law):**
 
 | Count | Role | What they see |
 |------:|------|----------------|
-| 2 | Source-heavy | Constraint view (no previous answer) |
-| 1 | Retained-structure | Conserved findings + provenance, not scores |
+| 1 | Blind | SOURCE + hard/soft constraints only (the reconstructability probe) |
 | 1 | Dissent / minority | Disagreements and minority findings as tests |
+| 1 | Source-heavy | Constraint view: constraints + open questions; still names prior hypotheses |
+| 1 | Retained-structure | Conserved findings + provenance, not scores |
 | 1 | Full-state | Complete state; still not a verdict |
 
-Repeat only while another generation would add information. Default cap: 5 generations.
+Repeat only while another generation would add information. A default run that can satisfy the two-transition stop test is **15 path invocations** (N=5 × 3 generations), up to **25** at the generation cap. There are no recorded task experiments in this repository.
 
 ## When to use it
 
@@ -112,9 +113,10 @@ python3 skill/scripts/validate_state.py path/to/state.json
 # STRUCTURAL_OK  — schema only, not a soundness proof
 ```
 
-Project a source-heavy view (no verdict fields):
+Project a blind reconstructability view, or a source-heavy constraint view (no verdict fields):
 
 ```bash
+python3 skill/scripts/project_state_view.py path/to/state.json --view blind
 python3 skill/scripts/project_state_view.py path/to/state.json --view constraint
 ```
 

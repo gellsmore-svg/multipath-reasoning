@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "multipath-reasoning"
-version = "0.1.0"
-description = "Recursive multipath reasoning for LLMs: independent reconstruction, admissibility, provenance, and false-attractor resistance."
+version = "0.1.1"
+description = "Recursive multipath reasoning for LLMs: independent reconstruction, admissibility, provenance, and path-inheritance false-attractor resistance (the evaluator remains a shared ancestor)."
 readme = "README.md"
 requires-python = ">=3.11"
 license = "Apache-2.0"

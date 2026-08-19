@@ -14,9 +14,11 @@ cp -a skill ~/.grok/skills/multipath-reasoning
 
 Then `/multipath-reasoning <task>` or `/skills multipath-reasoning`.
 
-Grok also auto-invokes from `description` / `when-to-use` unless `disable-model-invocation` is set (it is not).
+If the skill self-invokes rather than being explicitly requested, it must state N and the cost (15–25 path invocations at default settings) before spawning. There are no recorded task experiments.
 
-Native independence: `spawn_subagent`. Generation paths need write access for `path-k.md` (`read-write`, or omit `capability_mode` when a shell is required). Do not use `read-only` or `execute` for those children.
+Native independence: `spawn_subagent`. **Audit ownership:** the child writes `path-k.md`; the parent waits for a non-empty file. Generation paths therefore need write access (`read-write`, or omit `capability_mode` when a shell is required). Do not use `read-only` or `execute` for those children.
+
+If `spawn_subagent` is unavailable, mark `independence: "reduced"` before G0. Cheap tasks may proceed; high-consequence tasks should tell the user and prefer a smaller N or stop.
 
 ## Claude Code
 
@@ -26,7 +28,11 @@ Use Claude’s isolated subagent / Task tool analogously: separate contexts, sam
 
 ## Codex
 
-Copy into Codex’s skill location (commonly `~/.codex/skills/` or the project `.codex/skills/` tree, depending on your Codex version). Same substitution rule: strongest isolated child session.
+Copy into Codex’s skill location (commonly `~/.codex/skills/` or the project `.codex/skills/` tree, depending on your Codex version).
+
+Native independence: the host’s isolated child-agent primitive (`multi_agent_v1.spawn_agent` or current equivalent). **Audit ownership:** children return markdown; the **parent** writes `path-k.md`. Do not instruct Codex children to write audit files, and do not wait for them to create those files.
+
+If only in-session branching exists, `independence: "reduced"`.
 
 ## Amazon Kiro
 
