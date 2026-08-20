@@ -3,9 +3,9 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "multipath-reasoning"
+name = "recursive-reasoning-skills"
 version = "0.1.1"
-description = "Recursive multipath reasoning for LLMs: independent reconstruction, admissibility, provenance, and path-inheritance false-attractor resistance (the evaluator remains a shared ancestor)."
+description = "Recursive reasoning skills for LLM harnesses, including independent multipath reasoning and recursive confidence-loop scoring."
 readme = "README.md"
 requires-python = ">=3.11"
 license = "Apache-2.0"
@@ -30,8 +30,8 @@ classifiers = [
 dependencies = []
 
 [project.urls]
-Homepage = "https://github.com/gellsmore-svg/multipath-reasoning"
-Documentation = "https://github.com/gellsmore-svg/multipath-reasoning#readme"
+Homepage = "https://github.com/gellsmore-svg/recursive-reasoning-skills"
+Documentation = "https://github.com/gellsmore-svg/recursive-reasoning-skills#readme"
 
 [project.scripts]
 multipath-validate-state = "validate_state:main"

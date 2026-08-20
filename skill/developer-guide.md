@@ -14,7 +14,7 @@ This file is the human-facing guide. The agent procedure lives in `SKILL.md`. Op
 
 The method in this guide is platform-independent. Host-specific invocation, permissions, and audit-file ownership live here so they are not mixed into the theory sections.
 
-Install path is always a copy of this `skill/` tree. Landscape notes for nearby repos live in the source repository: [docs/system-landscape.md](https://github.com/gellsmore-svg/multipath-reasoning/blob/main/docs/system-landscape.md) (that file is **not** shipped inside an installed skill tree).
+Install path is always a copy of this `skill/` tree. Landscape notes for nearby repos live in the source repository: [docs/system-landscape.md](https://github.com/gellsmore-svg/recursive-reasoning-skills/blob/main/docs/system-landscape.md) (that file is **not** shipped inside an installed skill tree).
 
 Forbidden keys for source-heavy and blind views are defined once in `scripts/project_state_view.py` as `VERDICT_KEYS`. Do not maintain a second list here.
 
@@ -835,7 +835,7 @@ The quality of path independence should be recorded because it affects the meani
 
 Multipath Reasoning is a standalone reasoning specification. It must not require Deborah or Hoglah.
 
-Inspected repos (see [docs/system-landscape.md](https://github.com/gellsmore-svg/multipath-reasoning/blob/main/docs/system-landscape.md) in the source repository — that file is not part of the installed skill tree) do **not** support a current stack “Multipath → Deborah runtime → Hoglah execution.”
+Inspected repos (see [docs/system-landscape.md](https://github.com/gellsmore-svg/recursive-reasoning-skills/blob/main/docs/system-landscape.md) in the source repository — that file is not part of the installed skill tree) do **not** support a current stack “Multipath → Deborah runtime → Hoglah execution.”
 
 - **Deborah** is a human-readable **process language** (Cairn documents). Its README states it is not a device for turning stochastic steps into pure functions. A future `.cairn.md` description of a Multipath run would be optional.
 - **Hoglah** is a local-first **job queue** for LLM inference. A future orchestrator could enqueue path jobs there. That would be execution, not Multipath semantics.

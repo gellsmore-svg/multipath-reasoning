@@ -6,7 +6,7 @@ This document records relationships **as they appear in inspected repositories**
 
 A guessed layering (Multipath → Deborah runtime → Hoglah execution) appears in some design notes. **Inspection does not support that as the current architecture.** Deborah is a process *language*, not a Multipath executor. Hoglah is a job queue that *could* run path jobs later. Those are possible future consumers, not owners.
 
-## Multipath Reasoning (this repository)
+## Multipath Reasoning (skill in this repository)
 
 | | |
 |---|---|

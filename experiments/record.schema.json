@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/gellsmore-svg/multipath-reasoning/experiments/record.schema.json",
+  "$id": "https://github.com/gellsmore-svg/recursive-reasoning-skills/experiments/record.schema.json",
   "title": "Multipath experiment record",
   "type": "object",
   "required": [

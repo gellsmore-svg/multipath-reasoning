@@ -1,4 +1,4 @@
-# Multipath Reasoning
+# Recursive Reasoning Skills
 
 **Status:** experimental (v0.1.1) · **License:** Apache-2.0
 
@@ -107,7 +107,7 @@ The process is host-independent. The current native skill maps to **Grok Build**
 
 See [docs/installing-skills.md](docs/installing-skills.md).
 
-## Quick start (Grok)
+## Quick Start: Multipath (Grok)
 
 Copy `skill/` to `~/.grok/skills/multipath-reasoning/` (already the user-level location on the development machine), then:
 
@@ -165,14 +165,7 @@ Details: [docs/system-landscape.md](docs/system-landscape.md).
 
 ## Naming direction
 
-`multipath-reasoning` is increasingly too narrow for a repository that contains more than one recursive reasoning skill. Candidate repository names:
-
-- `recursive-reasoning-skills` — plain and accurate.
-- `llm-recursive-harness-skills` — emphasizes host/harness portability.
-- `admissible-recursion` — shorter, but more abstract.
-- `recursive-confidence-tools` — fits the new skill but underplays multipath.
-
-Recommended: **`recursive-reasoning-skills`**. It keeps the existing Multipath identity as a skill name while making room for adjacent recursive harness patterns.
+The repository name is `recursive-reasoning-skills`. `multipath-reasoning` remains the name of the independent-path skill.
 
 ## License
 
