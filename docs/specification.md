@@ -1,6 +1,8 @@
-# Specification (v0.1.1)
+# Multipath Specification (v0.1.1)
 
 Platform-independent process specification. The agent-facing procedure is [`skill/SKILL.md`](../skill/SKILL.md). Field meanings: [`skill/references/architecture.md`](../skill/references/architecture.md). Scores: [`skill/references/scoring.md`](../skill/references/scoring.md). Wiring, host mapping, and specified-vs-implemented: [`technical-description.md`](technical-description.md).
+
+This specification covers `multipath-reasoning` only. The separate `recursive-confidence-loop` skill is a single-chain recursive scoring loop and intentionally does not provide independent multipath evidence.
 
 This document does not replace the skill. The numbered items below are **prompt-level host obligations**. Eleven of twelve are enforced only by an LLM reading markdown; `STRUCTURAL_OK` covers schema and cheap cross-field rules, not these obligations. They are not runtime invariants a host binary cannot violate.
 

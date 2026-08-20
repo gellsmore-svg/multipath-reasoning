@@ -2,7 +2,9 @@
 
 **Status:** experimental (v0.1.1) · **License:** Apache-2.0
 
-Recursive multipath reasoning for LLMs: independent reconstruction, admissibility, provenance, path-inheritance false-attractor resistance, and confidence stabilization. The evaluator (parent session) remains a shared ancestor of every `state.json`.
+Recursive reasoning skills for LLM harnesses. The original skill is Multipath Reasoning: independent reconstruction, admissibility, provenance, path-inheritance false-attractor resistance, and confidence stabilization. The evaluator (parent session) remains a shared ancestor of every `state.json`.
+
+The repository now also contains `recursive-confidence-loop`, a narrower skill that repeatedly passes one basic request through an LLM until an LLM-selected diagnostic score vector stabilizes. That loop is not multipath and does not claim score stability is verification.
 
 A single fluent model answer can be wrong. Several agreeing answers can still share one mistake. Multipath Reasoning treats that as an engineering problem, not a voting problem.
 
@@ -10,7 +12,14 @@ A single fluent model answer can be wrong. Several agreeing answers can still sh
 
 The method is usable without any of the author’s other systems. It was *inspired by* exploratory relational-substrate research; it does **not** depend on that research being correct. See [docs/origins.md](docs/origins.md).
 
-## What it is
+## Included skills
+
+| Skill | Folder | Purpose |
+|-------|--------|---------|
+| `multipath-reasoning` | `skill/` | Independent-path recursive reasoning with bounded state and false-attractor safeguards. |
+| `recursive-confidence-loop` | `recursive-confidence-loop/` | Single-chain recursive calls until a fixed LLM-selected score vector stabilizes. |
+
+## What Multipath is
 
 Instead of asking one model trajectory to solve a hard problem once, Multipath:
 
@@ -123,7 +132,8 @@ python3 skill/scripts/project_state_view.py path/to/state.json --view constraint
 ## Repository layout
 
 ```
-skill/                  Canonical agent skill (SKILL.md + references + scripts)
+skill/                  Multipath Reasoning skill (SKILL.md + references + scripts)
+recursive-confidence-loop/  Recursive score-vector stabilization skill
 docs/technical-description.md  How the loop is wired (specified vs implemented)
 docs/origins.md         How the method arose (speculative research → engineering)
 docs/system-landscape.md  Actual relationships to other repos (inspected, not invented)
@@ -152,6 +162,17 @@ Details: [docs/system-landscape.md](docs/system-landscape.md).
 - [Installing the skill](docs/installing-skills.md)
 - [Origins](docs/origins.md)
 - [Experiments](docs/experiments.md)
+
+## Naming direction
+
+`multipath-reasoning` is increasingly too narrow for a repository that contains more than one recursive reasoning skill. Candidate repository names:
+
+- `recursive-reasoning-skills` — plain and accurate.
+- `llm-recursive-harness-skills` — emphasizes host/harness portability.
+- `admissible-recursion` — shorter, but more abstract.
+- `recursive-confidence-tools` — fits the new skill but underplays multipath.
+
+Recommended: **`recursive-reasoning-skills`**. It keeps the existing Multipath identity as a skill name while making room for adjacent recursive harness patterns.
 
 ## License
 

@@ -1,8 +1,11 @@
-# Installing the skill
+# Installing the skills
 
-There is **one** canonical skill: [`skill/SKILL.md`](../skill/SKILL.md) plus `references/`, `scripts/`, and `developer-guide.md`.
+There are currently two canonical skills:
 
-Do not fork four divergent copies. Hosts that accept YAML-frontmatter `SKILL.md` should receive this tree unmodified. Only the per-host subsections under **Host mechanism** differ; the rest of the process is host-neutral. A host not listed there substitutes its own isolated child-session API and keeps everything else.
+- [`skill/SKILL.md`](../skill/SKILL.md) — `multipath-reasoning`
+- [`recursive-confidence-loop/SKILL.md`](../recursive-confidence-loop/SKILL.md) — `recursive-confidence-loop`
+
+Do not fork divergent copies per host. Hosts that accept YAML-frontmatter `SKILL.md` should receive each skill tree unmodified. Only the per-host subsections differ; the rest of each process is host-neutral.
 
 ## Grok Build
 
@@ -10,6 +13,7 @@ User-level (all projects):
 
 ```bash
 cp -a skill ~/.grok/skills/multipath-reasoning
+cp -a recursive-confidence-loop ~/.grok/skills/recursive-confidence-loop
 ```
 
 Then `/multipath-reasoning <task>` or `/skills multipath-reasoning`.
@@ -25,6 +29,7 @@ If `spawn_subagent` is unavailable, mark `independence: "reduced"` before G0. Ch
 ```bash
 cp -a skill ~/.claude/skills/multipath-reasoning        # user-level
 cp -a skill <repo>/.claude/skills/multipath-reasoning   # project-level
+cp -a recursive-confidence-loop ~/.claude/skills/recursive-confidence-loop
 ```
 
 Copy the tree **unmodified**. `when-to-use`, `argument-hint`, and `metadata` are Grok frontmatter keys that Claude Code ignores; leaving them in place keeps `scripts/validate_state.py` identical to this repository, so `--self-test` passes and no fix is stranded downstream. The skill registry is read at session start, so a new install registers on the next session.
@@ -46,6 +51,11 @@ If only in-session branching is available, set `independence: "reduced"`.
 
 Copy into Codex’s skill location (commonly `~/.codex/skills/` or the project `.codex/skills/` tree, depending on your Codex version).
 
+```bash
+cp -a skill ~/.codex/skills/multipath-reasoning
+cp -a recursive-confidence-loop ~/.codex/skills/recursive-confidence-loop
+```
+
 Native independence: the host’s isolated child-agent primitive (`multi_agent_v1.spawn_agent` or current equivalent). **Audit ownership:** children return markdown; the **parent** writes `path-k.md`. Do not instruct Codex children to write audit files, and do not wait for them to create those files.
 
 If only in-session branching exists, `independence: "reduced"`.
@@ -61,6 +71,7 @@ Kiro-specific directory names vary by version; do not invent a path. Prefer the 
 ```bash
 python3 skill/scripts/validate_state.py --self-test
 python3 skill/scripts/project_state_view.py --self-test
+python3 recursive-confidence-loop/scripts/vector_stability.py path/to/state.json
 ```
 
-Both checks are **structural / install** checks. They do not prove the method works on a task.
+These checks are **structural / install** checks. They do not prove either method works on a task.

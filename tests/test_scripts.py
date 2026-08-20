@@ -11,6 +11,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = ROOT / "skill" / "scripts"
+RECURSIVE_SCRIPTS = ROOT / "recursive-confidence-loop" / "scripts"
 
 
 def _run(*args: str) -> subprocess.CompletedProcess[str]:
@@ -239,6 +240,58 @@ class ScriptTests(unittest.TestCase):
         self.assertIn("File-writing hosts", text)
         self.assertIn("Return-markdown hosts", text)
         self.assertIn("parent** writes", text.lower())
+
+    def test_recursive_confidence_loop_stability(self) -> None:
+        state = {
+            "dimensions": [
+                {"name": "answer_fit", "meaning": "Fits request", "polarity": "higher_better"},
+                {"name": "uncertainty", "meaning": "Remaining uncertainty", "polarity": "lower_better"},
+                {"name": "specificity", "meaning": "Specific enough", "polarity": "higher_better"},
+            ],
+            "iterations": [
+                {
+                    "scores": {"answer_fit": 0.80, "uncertainty": 0.25, "specificity": 0.70},
+                    "material_change": False,
+                    "external_evidence_needed": False,
+                },
+                {
+                    "scores": {"answer_fit": 0.81, "uncertainty": 0.24, "specificity": 0.71},
+                    "material_change": False,
+                    "external_evidence_needed": False,
+                },
+                {
+                    "scores": {"answer_fit": 0.815, "uncertainty": 0.235, "specificity": 0.715},
+                    "material_change": False,
+                    "external_evidence_needed": False,
+                },
+            ],
+        }
+        with tempfile.TemporaryDirectory() as td:
+            path = Path(td) / "state.json"
+            path.write_text(json.dumps(state), encoding="utf-8")
+            proc = _run(
+                str(RECURSIVE_SCRIPTS / "vector_stability.py"),
+                str(path),
+                "--window",
+                "3",
+                "--epsilon",
+                "0.02",
+            )
+            self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+            self.assertIn("STABLE", proc.stdout)
+
+            state["iterations"][-1]["scores"]["specificity"] = 0.9
+            path.write_text(json.dumps(state), encoding="utf-8")
+            proc = _run(
+                str(RECURSIVE_SCRIPTS / "vector_stability.py"),
+                str(path),
+                "--window",
+                "3",
+                "--epsilon",
+                "0.02",
+            )
+            self.assertNotEqual(proc.returncode, 0)
+            self.assertIn("NOT_STABLE", proc.stdout)
 
 
 if __name__ == "__main__":
