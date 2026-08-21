@@ -1,0 +1,42 @@
+{
+  "schema_version": "0.2.0",
+  "task_id": "bounded-lock-peer",
+  "source_hash": "1e98eeea29dbbf19",
+  "model_mix": [
+    "gemma2:2b",
+    "gemma4:e2b",
+    "gemma4:latest",
+    "mistral-small:latest"
+  ],
+  "population_size": 16,
+  "generations": 1,
+  "independence": "full",
+  "error_correlation_risk": "low",
+  "constraint_view_used": false,
+  "blind_view_used": false,
+  "project_mutated": false,
+  "ground_truth": "close() is the only method touching self._conn without holding self._lock, so teardown can free the SQLite connection while a background daemon thread is mid-execute, giving a use-after-free in the sqlite3 C extension.",
+  "admissible_set_contains_ground_truth": true,
+  "graded_by": {
+    "who": "objective CULPRIT-line match against fix commit bda0802",
+    "blind_to_condition": true
+  },
+  "cost": {
+    "tokens": 0,
+    "path_invocations": 20,
+    "wall_clock_s": null
+  },
+  "condition": "majority",
+  "model": "4-model local ensemble",
+  "artifact_dir": "local/peer/task-lock2.txt.result.json",
+  "final_answer": "CULPRIT=mark_result_published",
+  "matches_ground_truth": false,
+  "completion_status": "STABLE_HIGH_CONFIDENCE",
+  "false_attractor_warnings": [
+    {
+      "code": "POSSIBLE_FALSE_ATTRACTOR",
+      "detail": "Mode is mark_result_published at 10/16 and the code contradicts it; that method holds the lock."
+    }
+  ],
+  "notes": "BASELINE. Plain majority vote over the pooled 16 generations from four local models ['gemma2:2b', 'gemma4:e2b', 'gemma4:latest', 'mistral-small:latest']. Pool: {'mark_result_published': 10, 'claim_for_processing': 1, 'publish_now': 2, 'close': 3}. Vote returns the wrong answer."
+}

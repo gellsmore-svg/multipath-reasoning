@@ -1,0 +1,39 @@
+{
+  "schema_version": "0.2.0",
+  "task_id": "bounded-lock-review",
+  "source_hash": "1e98eeea29dbbf19",
+  "condition": "one-shot-synthesis",
+  "model": "gemma4:latest",
+  "model_mix": [
+    "gemma4:latest"
+  ],
+  "population_size": 2,
+  "generations": 1,
+  "independence": "reduced",
+  "error_correlation_risk": "high",
+  "constraint_view_used": false,
+  "blind_view_used": false,
+  "project_mutated": false,
+  "artifact_dir": "local/review/result3.json",
+  "final_answer": "p_fp=0.2 p_r=0.3333333333333333 discrimination=0.1333333333333333",
+  "ground_truth": "close() is the only method touching self._conn without holding self._lock. mark_result_published is lock-protected and is provably NOT the fault.",
+  "matches_ground_truth": false,
+  "admissible_set_contains_ground_truth": true,
+  "completion_status": "NON_CONVERGENT",
+  "graded_by": {
+    "who": "objective: did the review overturn a seeded known-correct / known-wrong answer",
+    "blind_to_condition": true
+  },
+  "false_attractor_warnings": [
+    {
+      "code": "POSSIBLE_FALSE_ATTRACTOR",
+      "detail": "Reviewer discrimination 0.1333333333333333; p_fp=0.2 p_r=0.3333333333333333. A reviewer with p_r==p_fp carries no information regardless of how confident its prose is."
+    }
+  ],
+  "cost": {
+    "tokens": 0,
+    "path_invocations": 16,
+    "wall_clock_s": null
+  },
+  "notes": "SINGLE-ANSWER ADVERSARIAL REVIEW as reviewer=diff-model  gemma4:latest. Framing held constant. Seeded with the known-correct answer (close) 10x and a HARD known-wrong answer (mark_result_published, which is lock-protected and was the population's own attractor at 21/21) 6x. CORRECT-seed finals: ['close', 'NO-ANSWER', 'close', 'mark_result_published', 'close', 'NO-ANSWER', 'NO-ANSWER', 'close', 'NO-ANSWER', 'NO-ANSWER']. WRONG-seed finals: ['mark_result_published', 'NO-ANSWER', 'NO-ANSWER', 'NO-ANSWER', 'mark_result_published', 'close']. Recorded as one-shot-synthesis (nearest enum value); the schema has no condition for single-answer review. NOTE: an earlier run of this design scored gemma4:e2b at +1.00 using an EASY wrong seed (call_specialist, an exception handler); that result was an artifact of seed difficulty and does not survive a hard seed."
+}

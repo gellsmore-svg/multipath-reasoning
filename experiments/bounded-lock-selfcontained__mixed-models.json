@@ -1,0 +1,37 @@
+{
+  "schema_version": "0.2.0",
+  "task_id": "bounded-lock-selfcontained",
+  "source_hash": "1e98eeea29dbbf19",
+  "condition": "mixed-models",
+  "model": "4-model local peer convergence, model-derived rule",
+  "model_mix": [
+    "gemma2:2b",
+    "gemma4:e2b",
+    "gemma4:latest",
+    "mistral-small:latest"
+  ],
+  "population_size": 16,
+  "generations": 1,
+  "independence": "full",
+  "error_correlation_risk": "low",
+  "constraint_view_used": false,
+  "blind_view_used": false,
+  "project_mutated": false,
+  "artifact_dir": "local/derive/",
+  "final_answer": "CULPRIT=close",
+  "ground_truth": "close() is the only method touching self._conn without holding self._lock, so teardown can free the SQLite connection while a background daemon thread is mid-execute, giving a use-after-free in the sqlite3 C extension.",
+  "matches_ground_truth": true,
+  "admissible_set_contains_ground_truth": true,
+  "completion_status": "STABLE_HIGH_CONFIDENCE",
+  "graded_by": {
+    "who": "objective culprit match against fix commit bda0802, format-tolerant parse",
+    "blind_to_condition": true
+  },
+  "false_attractor_warnings": [],
+  "cost": {
+    "tokens": 0,
+    "path_invocations": 28,
+    "wall_clock_s": null
+  },
+  "notes": "FULLY SELF-CONTAINED PIPELINE. Stage 0: each of 4 models asked what convention the class follows and how to audit it -- prompt never mentions lock, close, or bugs, and forbids diagnosing. All 8/8 samples derived the lock-discipline invariant unaided. Rule taken verbatim from mistral-small: 'Ensure every method contains a with self._lock: block around any database operations involving _conn.' Stage 1: 16 candidates generated; close present 3/16; majority vote returns mark_result_published (WRONG). Stage 2: the same 4 models verify the deduplicated candidate list (counts stripped) against the MODEL-DERIVED rule. Result: close, 3/4. Identical to the run using an experimenter-written rule, so supplying the rule bought nothing. No model above 14.3GB and no frontier model in the loop. gemma2:2b (1.6GB) dissented in both runs -- it hallucinated that close() does not touch self._conn -- placing the comprehension floor between 1.6 and 7.2GB. gemma4:latest reached close by reasoning but emitted 'Candidate:' instead of 'CULPRIT:' and was truncated; scored by a format-tolerant parser. KEY MECHANISM: gemma4:e2b generated mark_result_published 17/17 across all runs and never once produced close, yet verified close correctly -- a within-model generate/verify asymmetry. The population's role is coverage, not insight."
+}

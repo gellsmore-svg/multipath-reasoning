@@ -1,0 +1,34 @@
+{
+  "schema_version": "0.2.0",
+  "task_id": "hoglah-segv",
+  "source_hash": "70a38d019dacf80c",
+  "condition": "single-path",
+  "model": "claude-opus-5[1m]",
+  "model_mix": [
+    "claude-opus-5[1m]"
+  ],
+  "population_size": 1,
+  "generations": 1,
+  "independence": "reduced",
+  "error_correlation_risk": "high",
+  "constraint_view_used": false,
+  "blind_view_used": false,
+  "project_mutated": false,
+  "artifact_dir": "runs/hoglah-segv/single-path",
+  "final_answer": "Root cause: SQLiteJobStore.close() closes the shared sqlite3 connection without taking self._lock, freeing it under a background thread's in-flight statement. Fix: take the lock in close(). [see single-path/answer.md]",
+  "ground_truth": "SQLiteJobStore.close() calls self._conn.close() bare, without taking self._lock, while every other method on the store guards its _conn access with that lock. The store is opened with check_same_thread=False and is shared with background threads - the worker, and kafka_bridge.publish_result's fire-and-forget publisher threads which call mark_result_published. Closing the connection from one thread while another is mid-execute frees the connection under a running statement, and the sqlite3 C extension dies with SIGSEGV. The fix is to take the lock in close() so it waits for the in-flight statement, and make close() idempotent (later calls raise sqlite3.ProgrammingError, which the publisher already catches).",
+  "matches_ground_truth": true,
+  "admissible_set_contains_ground_truth": null,
+  "completion_status": "SETTLED_BY_VERIFICATION",
+  "graded_by": {
+    "who": "independent LLM grader agent, shuffled anonymised candidates",
+    "blind_to_condition": true
+  },
+  "false_attractor_warnings": [],
+  "cost": {
+    "tokens": 100372,
+    "path_invocations": 1,
+    "wall_clock_s": 350.0
+  },
+  "notes": "Grader: 0 notable error(s); calibration well-calibrated. Screened bug-fix commit bda0802; snapshot is git-archive of the parent commit, fix unreachable."
+}

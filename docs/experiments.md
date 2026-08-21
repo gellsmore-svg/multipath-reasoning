@@ -2,7 +2,9 @@
 
 This repository is experimental. Claims about reliability should come from recorded comparisons, not from vocabulary.
 
-This directory ships **empty of results**. The design below is what a comparison must look like if one is run. Do **not** claim statistical significance from tiny samples. Do **not** treat `STRUCTURAL_OK` as a positive experimental result.
+The first recorded comparison is in [`experiments/RESULTS-2026-08-19.md`](../experiments/RESULTS-2026-08-19.md): four oracle debugging tasks, seven records. Single-path matched ground truth on all four; the population arm tied at 4.9× cost, and the recursive arms did not run because `state_0` came back `DEGENERATE_POPULATION`. Read it before citing any reliability claim.
+
+The design below is what a comparison must look like. Do **not** claim statistical significance from tiny samples — the recorded run does not, and cannot. Do **not** treat `STRUCTURAL_OK` as a positive experimental result.
 
 ## Falsification criterion
 

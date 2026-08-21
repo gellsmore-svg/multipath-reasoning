@@ -1,0 +1,43 @@
+{
+  "schema_version": "0.2.0",
+  "task_id": "bounded-lock-fc2",
+  "source_hash": "1e98eeea29dbbf19",
+  "condition": "majority",
+  "model": "gemma4:e2b",
+  "model_mix": [
+    "gemma4:e2b",
+    "gemma4:e2b",
+    "gemma4:e2b",
+    "gemma4:e2b",
+    "gemma4:e2b"
+  ],
+  "population_size": 5,
+  "generations": 1,
+  "independence": "full",
+  "error_correlation_risk": "high",
+  "constraint_view_used": false,
+  "blind_view_used": false,
+  "project_mutated": false,
+  "artifact_dir": "local/pops/fc2.majority.txt",
+  "final_answer": "CULPRIT=mark_result_published",
+  "ground_truth": "close() is the only method touching self._conn without holding self._lock, so teardown can free the SQLite connection while a background daemon thread is mid-execute inside the lock-protected mark_result_published, giving a use-after-free in the sqlite3 C extension.",
+  "matches_ground_truth": false,
+  "admissible_set_contains_ground_truth": null,
+  "completion_status": "STABLE_HIGH_CONFIDENCE",
+  "graded_by": {
+    "who": "objective CULPRIT-line match against known fix commit bda0802",
+    "blind_to_condition": true
+  },
+  "false_attractor_warnings": [
+    {
+      "code": "POSSIBLE_FALSE_ATTRACTOR",
+      "detail": "Population unanimous (5/5) on a culprit the source code contradicts; that method holds the lock."
+    }
+  ],
+  "cost": {
+    "tokens": 0,
+    "path_invocations": 5,
+    "wall_clock_s": 30.0
+  },
+  "notes": "Regime: false-consensus (population unanimous and wrong). Population culprits: ['mark_result_published', 'mark_result_published', 'mark_result_published', 'mark_result_published', 'mark_result_published']. Majority vote: mark_result_published. Mode of the 5 path culprits. Computed, no parent inference. Bounded snippet task (no agentic tool use), so this isolates reasoning aggregation from tool-use ability. cost.tokens not metered for local inference."
+}

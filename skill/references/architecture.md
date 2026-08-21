@@ -26,19 +26,64 @@ Forbidden: population → winner → copies of winner.
 
 Strongest available mechanism is host-specific (`SKILL.md` §Host mechanism): a fresh isolated child per path, never a resumed or forked context. On Grok Build that is `spawn_subagent` without `resume_from`; on Claude Code it is the `Agent` tool with `subagent_type: "general-purpose"`, never `"fork"`.
 
-Full independence requires all of:
+Independence has **two** components, and they are not the same thing. Recorded runs
+show that satisfying the first while ignoring the second reproduces majority vote.
+
+### 1. Context isolation — necessary, cheap, insufficient
 
 - separate contexts
 - same original SOURCE
 - no sibling answers
 - no intra-generation communication
 - no inherited sibling conclusions
-- same model/settings (omit `model`)
 - outputs preserved separately
 
-Mark `independence: "full"` only when those hold. Sequential in-parent simulation is `reduced`.
+Record as `context_isolation: "full"`. Sequential in-parent simulation is `"reduced"`.
+This prevents paths contaminating each other. It does **nothing** about shared priors.
 
-`independence: "full"` means **context isolation**, not error independence. Homogeneous same-model samples still share training priors. Record `error_correlation_risk: "high"` unless models or sampling settings were deliberately mixed.
+### 2. Error decorrelation — the one that does the work
+
+Sampling one model N times perturbs the *draw*, not the *model*. Same weights, same
+prior, same pull toward the same wrong framing, so the errors are correlated **and
+biased**. Averaging a biased estimator converges to the bias: more samples make a
+systematic error *more* confident, not less. Measured (`experiments/RESULTS-2026-08-19.md`):
+one model produced the same wrong culprit on **21 of 21** samples and never once
+produced the correct answer. Resampling it a thousand times would not have helped.
+
+Record `error_correlation_risk`:
+
+| value | when |
+|-------|------|
+| `high` | one model, or one family, however many samples |
+| `medium` | different families but materially different capability |
+| `low` | two or more families of **comparable capability** on this task |
+
+**`independence: "full"` requires `context_isolation: "full"` AND
+`error_correlation_risk: "low"`.** A single-model population is `independence: "reduced"`
+no matter how many paths it has.
+
+### Comparable capability is a gate, not a preference
+
+Mixing in a member that cannot do the task does not add diversity, it dilutes coverage
+and adds confident noise. Measured: adding zero-support members halved the chance the
+correct answer reached the pool at all (83% → 59% at N=8), and the weakest member
+asserted a false premise about the source while deriving the audit rule correctly.
+
+Before spawning, satisfy yourself that each member can (a) read the evidence accurately
+and (b) produce a parseable answer in the required shape. Drop any that cannot. A peer
+below that floor is worse than absent.
+
+### When a single model is admissible
+
+Not never, but narrowly. One model is usable when it has **non-zero probability of
+producing the correct answer** for this prompt — i.e. its candidate set genuinely varies
+across samples. Then sampling it more widens coverage and verification can pick the
+winner. It is unusable when its output is degenerate: identical answers across samples
+means the answer is outside its support, and no N recovers it.
+
+The problem is that you cannot measure that in advance. A degenerate population is
+indistinguishable from a confident correct one until checked against the source. Treat
+`distinct_solutions == 1` as the alarm, not the reassurance.
 
 **Reduced mode.** If the host cannot spawn isolated child contexts: mark `independence: "reduced"` and `error_correlation_risk: "high"` before G0. Cheap tasks may proceed. High-consequence tasks should tell the user isolation is unavailable and prefer a smaller N or stop. In reduced mode, no claim may be classed `RECONSTRUCTED_STABLE`, and the user-facing summary must say isolation was simulated.
 

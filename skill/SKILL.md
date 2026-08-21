@@ -44,6 +44,66 @@ Load supporting files from this skill directory only when needed:
 - `scripts/project_state_view.py` — role-specific path-facing views of `state.json`
 - `developer-guide.md` — human-facing Developer Guide. Do **not** load it during a run unless the user asks about the method, the checklist, or how Multipath works.
 
+## Preconditions — check these before spending anything
+
+**These four conditions are an untested heuristic, not a validated boundary.** They were
+inferred from four tasks in one domain (single-root-cause debugging with an oracle), and
+22 of the 25 records restage a single bug. Nothing tests their necessity or sufficiency, and
+no-oracle settings — research, architecture, decision analysis — were never run at all. Two
+external audits judged the stated version of this bound UNSUPPORTED
+(`experiments/audits/`).
+
+Treat them as the author's current guess at where the method is worth its cost. If any fails,
+solving the task directly is very likely the better move.
+
+1. **The population can be wrong together.** If a single competent trajectory reliably solves
+   the task, the population adds nothing — measured: on four real oracle bugs a single
+   frontier path matched ground truth 4/4 while the population tied at ~5x the cost. This
+   method is for tasks where a confident answer can be confidently wrong.
+
+2. **The population can contain the right answer.** Sample once or twice first. If every
+   sample returns the same claim, the answer is likely outside the model's support and no N
+   recovers it — measured: one model produced an identical wrong answer on 21 of 21 samples.
+   A degenerate population is indistinguishable from a correct one without checking against
+   the source.
+
+3. **Two or more model families of comparable capability are available.** Resampling one
+   model perturbs the draw, not the prior; its errors stay correlated and biased. Members
+   that cannot read the evidence accurately dilute coverage rather than adding diversity.
+
+4. **The evidence supports a checkable rule.** Convergence works by verifying candidates
+   against an invariant derived from the evidence. If nothing about the task can be checked
+   — no oracle, no invariant, no test — verification degenerates into opinion and this
+   method has no recorded support in that setting.
+
+## What has not worked — on the evidence so far
+
+Each of these was measured rather than assumed. But every one comes from a small number of
+runs on a narrow task family, and most from a **single bug restaged** — see
+`experiments/RESULTS-2026-08-19.md` and the external audits beside it. Read these as
+"not demonstrated to help, and here is what happened when tried", not as laws.
+
+- **Sampling one model N times and taking the mode.** On one task one model returned the same
+  wrong answer 21/21; on two other populations the majority was correct. Bias did not average
+  out where it existed, but this is not a law of resampling and confidence was never plotted
+  against N.
+- **Asking a model to review a single answer** ("here is the answer, is it correct?"). Three
+  reviewers on one task, none usable: one kept everything (p_fp 0%, p_r 0%), one changed
+  everything (100%/100%), one reached +0.13 on 5 of 10 valid responses. The first two produce
+  fluent, decisive prose carrying no information. An earlier +1.00 for this design was an
+  artifact of an implausible wrong seed and vanished under a hard one. One task — treat this
+  as "not demonstrated to help", not as a general law.
+- **A convergence step run by the same model that generated the candidates**, judging by
+  frequency. On four populations of one bug it reproduced the mode 4 of 4 and stamped a wrong
+  answer `STABLE_HIGH_CONFIDENCE`.
+- **Adding more review passes.** Splitting a stage into produce-then-review is
+  re-partitioning, not new signal. Each same-model pass re-applies the same prior.
+
+**The one shape with any recorded support is comparative** (one task, one run): several *distinct* candidates,
+frequencies stripped, each checked against a derived rule. A model that cannot judge one
+answer in isolation can often pick correctly among four. Preserve that shape; a second pass
+that judges a single item is worthless.
+
 ## When not to run
 
 Skip this skill and solve the task directly when it is a simple factual lookup, straightforward formatting, mechanical edit, obvious one-line fix, simple transformation, or the extra inference cost clearly outweighs the benefit.
@@ -58,7 +118,23 @@ Use the strongest independence the current host provides. Generation-0 paths mus
 
 **Preflight.** Before G0, note whether the host can spawn isolated child contexts. If not, mark `independence: "reduced"` and `error_correlation_risk: "high"`. Reduced-mode runs may proceed for cheap tasks; for high-consequence tasks, tell the user isolation is unavailable and prefer a smaller N or stop. In reduced mode, no claim may be classed `RECONSTRUCTED_STABLE`, and the user-facing summary must say isolation was simulated.
 
-`independence: "full"` means **context isolation**, not error independence. Same-model homogeneous samples still share training priors (see `references/failure-modes.md`). Record `error_correlation_risk: "high"` unless models or sampling settings were deliberately mixed.
+**Population composition — decide this before N.** Context isolation is not error
+independence. Sampling one model N times perturbs the draw, not the prior, so its errors
+stay correlated and biased; a recorded run produced the same wrong answer on 21 of 21
+samples. Prefer **two or more model families of comparable capability on this task**, and
+record `error_correlation_risk`: `low` only for mixed families of comparable capability,
+`medium` for mixed families of unequal capability, `high` for one model or one family at
+any N. `independence: "full"` requires `context_isolation: "full"` **and**
+`error_correlation_risk: "low"`.
+
+Comparable capability is a **gate**. A member that cannot read the evidence accurately or
+answer in the required shape dilutes coverage and adds confident noise — measured, adding
+zero-support members cut the chance of the truth reaching the pool from 83% to 59%. Drop
+such members; a peer below that floor is worse than absent.
+
+One model is admissible only when its candidate set genuinely varies across samples. If
+every sample returns the same answer, the answer you want is outside its support and no N
+will recover it. See `references/architecture.md` §Independence.
 
 **Audit persist contract (host-neutral):** every path’s output is persisted as `gen-${t}/path-${k}.md`. Who writes the file is host-specific:
 
@@ -231,9 +307,55 @@ Write a `paths` roster on `state.json` even at G0: each row `{id: "g0pK", role: 
 
 Do not let majority opinion influence any generation-0 path. Do not share sibling outputs until this generation is complete.
 
+## Derive the audit rule (before convergence)
+
+Convergence is **verification**, not evaluation, and verification needs a rule to verify
+against. Derive it from the evidence rather than supplying it, and derive it from more
+than one member.
+
+Ask two or more paths, in a separate cheap call that does **not** name any candidate and
+does **not** ask for a diagnosis:
+
+```
+Do not diagnose anything. Do not name a faulty component.
+Looking at this evidence as a whole: what convention or invariant does it appear to
+follow consistently? If you wanted to audit for a place where that convention is
+broken, what exactly would you check? Give a test that can be applied mechanically
+to any one part.
+
+INVARIANT: <one line>
+CHECK: <the mechanical test, one line>
+```
+
+Recorded runs show small models derive usable rules unaided (8 of 8 samples across four
+models, from a prompt that never named the invariant). Take the `CHECK` verbatim into the
+next step and record it in `state.json` as `derived_rule`. If members derive *different*
+invariants, that is information: carry both and verify against each.
+
+A rule you wrote yourself is a hint, not a derivation. If you supply it, record
+`derived_rule.source: "experimenter"` so the run cannot be read as self-contained.
+
 ## Structured convergence
 
 The parent evaluates. Do **not** ask “what do most paths agree on?”
+
+**Convergence is verification against the derived rule, applied to a deduplicated
+candidate set with vote counts stripped.** Reduce the population's answers to the set of
+*distinct* claims, discard the frequencies, and check each surviving claim against the
+rule and the SOURCE. If frequencies are visible the step degenerates into majority vote;
+a recorded run showed a same-model parent reproducing the population mode 4 times out of
+4 and stamping the wrong answer `STABLE_HIGH_CONFIDENCE`.
+
+The correct answer is frequently a *minority* claim, because a biased population buries
+it: in a recorded run the true culprit was 3 of 16 while the mode was wrong at 10 of 16.
+Verification recovered it; every counting rule could not.
+
+**Verify with more than one member.** Verification carries its own model-specific bias,
+distinct from generation bias. Measured: one model chose the same wrong candidate on 4 of
+4 verification trials, including one where the population's majority had been correct —
+it destroyed a right answer. A quorum of verifiers from different families overrode that;
+a single verifier did not. Record each verifier's verdict in `verification`, not just the
+consensus.
 
 The parent is a **shared ancestor** of every `state.json`. Path isolation does not make C_t independent. Re-read `source.md` and the previous `state.json` from disk before each convergence; do not evaluate from recollection. `source_invariants` must be quotes or close paraphrases of SOURCE, not the parent’s G0 conclusion. Inferred constraints belong in `constraints.inferred`, which **blind** and **constraint** views drop. Do not treat parent scores as external verification.
 
@@ -352,6 +474,18 @@ Recursive prompt: use the template in `references/architecture.md`. Substitute S
 Before spawning generation t+1, ask: what remains unresolved, what kind of path could resolve it, is new independent reconstruction useful, is external evidence required instead, is uncertainty irreducible from the supplied information? If another generation would only repeat inherited reasoning, stop and say so.
 
 Two consecutive stable transitions are a **precondition for `STABLE_HIGH_CONFIDENCE` only**. A run may stop earlier with another status (including `SETTLED_BY_VERIFICATION`, `BLOCKED_NEED_EXTERNAL_EVIDENCE`, `ask_user`, or `ABORTED_INSUFFICIENT_PATHS`). The G0→G1 transition is not eligible as a stable transition (role mix changes the measuring instrument).
+
+**Coverage rule (applies before the stability tests).** The population's job is to get
+the correct candidate into the set at all; verification then selects it. So sample while
+*new distinct candidates keep appearing*, and stop expanding when the candidate set stops
+growing. This is a coverage criterion computed from artifacts on disk, not a self-assessed
+score, and it is the one stopping signal that does not depend on the parent's own
+judgement. Record `distinct_candidates` per generation.
+
+If `distinct_solutions == 1` across a population of 3 or more, that is
+`DEGENERATE_POPULATION`, not confidence: either the answer is outside the population's
+support, or the members are too correlated to disagree. Do not spawn another generation of
+the same composition — change the composition or seek external evidence.
 
 Stopping requires all of:
 

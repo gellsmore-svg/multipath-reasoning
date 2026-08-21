@@ -1,0 +1,32 @@
+You are auditing claims a repository makes about its own experimental results.
+Be adversarial about the CLAIMS but faithful to the DATA. Do not be polite.
+
+Read these files in this repository:
+  experiments/RESULTS-2026-08-19.md
+  experiments/*.json          (25 experiment records)
+  skill/SKILL.md              (sections "Preconditions" and "What does not work")
+  README.md                   (sections "What does not work" and "Where the value actually is")
+
+Below are seven load-bearing claims the repository now makes. For EACH, judge it
+against the recorded data only. Do not assume the claims are correct; several may
+overstate what the records support.
+
+C1. Resampling one model N times does not correct systematic bias; more samples raise
+    confidence in the same wrong answer.
+C2. "Independence" must require error decorrelation (different model families), not
+    merely context isolation; a single-model population is not independent at any N.
+C3. Majority vote fails precisely when the population is biased, because the correct
+    answer is then the infrequent one.
+C4. Asking a model to review a single answer carries no information: reviewers are
+    either sycophants (keep everything) or inverters (change everything).
+C5. Comparative verification over a deduplicated candidate set beats majority vote.
+C6. On four real oracle debugging tasks a single frontier trajectory matched ground
+    truth 4/4, while the multipath arm tied at roughly 5x the cost.
+C7. The four preconditions in SKILL.md correctly bound when this method is worth running.
+
+For each claim output exactly one line:
+  <ID>: SUPPORTED | OVERSTATED | UNSUPPORTED | CONTRADICTED — <one sentence citing the record or file that decides it>
+
+Then output:
+  BIGGEST_PROBLEM: <the single thing in this repo most likely to mislead a reader, one sentence>
+  SAMPLE_SIZE_HONEST: YES or NO — <does the repo state its n honestly, one sentence>
