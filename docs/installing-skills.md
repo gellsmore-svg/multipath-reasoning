@@ -47,6 +47,15 @@ For software tasks, `isolation: "worktree"` gives each path its own git worktree
 
 If only in-session branching is available, set `independence: "reduced"`.
 
+**For `recursive-confidence-loop` the shape is different** — it is a chain, not a population.
+Spawn iterations **one at a time, sequentially**: iteration N needs N−1's scores, so parallel
+calls break it. `fork` is prohibited for the same reason as above and for one more — the
+chain must carry forward only what the prompt declares (SOURCE, the fixed schema, the previous
+answer and scores), and an inherited conversation smuggles in state the audit trail cannot
+see. That is the equivalent of Codex's `fork_context: false`. Do **not** use
+`isolation: "worktree"` for scoring iterations: they must not mutate the project, and a
+worktree would mask an iteration that tried.
+
 ## Codex
 
 Copy into Codex’s skill location (commonly `~/.codex/skills/` or the project `.codex/skills/` tree, depending on your Codex version).

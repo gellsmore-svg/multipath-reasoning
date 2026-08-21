@@ -86,6 +86,32 @@ Do not let the iteration redefine the task, change the score schema after iterat
 
 Use `multi_agent_v1.spawn_agent` when available for each recursive call, one child at a time, with `fork_context: false` or omitted. Children return markdown; the parent writes `iteration-N.md`. If child agents are unavailable, run the iterations in the parent and record `call_isolation: "reduced"`.
 
+### Claude Code
+
+Use the **`Agent`** tool with `subagent_type: "general-purpose"`, **one child at a time**,
+sequentially. Each iteration is a fresh cold context — that is the point: the chain carries
+forward only what you put in the prompt (SOURCE, the fixed schema, the previous answer and
+scores), never an inherited conversation.
+
+- **Never `subagent_type: "fork"`.** A fork inherits the parent's whole conversation, so the
+  iteration would carry hidden state beyond the declared contract and the chain stops being
+  auditable. That is the equivalent of Codex's `fork_context: false`.
+- **Never `subagent_type: "Explore"`** — no Write tool, so it cannot produce `iteration-N.md`.
+- Do **not** spawn iterations in parallel. This is a chain, not a population; iteration N
+  needs N−1's scores.
+- Omit `model` so every iteration runs on the parent's model. Varying it mid-chain changes
+  what the scores mean.
+- Prefix `description` with the iteration id, e.g. `"[iter-3] recursive confidence"`.
+- `general-purpose` agents can call `Agent` themselves, so every iteration prompt must forbid
+  it. Nesting is prompt-only here, not host-enforced.
+- Claude Code is a **file-writing host**: the child writes its own `iteration-N.md`. Verify
+  the file exists and is non-empty rather than trusting the agent's report.
+- If `Agent` is unavailable or a call fails, run the iteration in the parent and record
+  `call_isolation: "reduced"`.
+
+Do not pass `isolation: "worktree"` for scoring iterations — they must not mutate the project,
+and a worktree would only mask an iteration that tried.
+
 ### File-Writing Hosts
 
 If the host expects children to write files, prompt each iteration to write only its assigned `iteration-N.md` file and not edit project files.

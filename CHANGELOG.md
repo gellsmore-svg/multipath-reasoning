@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+- Claude Code host mapping for `recursive-confidence-loop`, so the tree installs unmodified
+  on that host as Multipath already does. `Agent` with `subagent_type: "general-purpose"`,
+  **one iteration at a time** — it is a chain, not a population. `fork` is prohibited: it is
+  the equivalent of Codex's `fork_context: false`, and an inherited conversation would carry
+  state past the declared contract, so the chain would stop being auditable. `Explore` cannot
+  write `iteration-N.md`. Worktree isolation is prohibited for scoring iterations, which must
+  not mutate the project.
+
 - `recursive-confidence-loop/scripts/vector_stability.py` gains `--self-test`, matching the
   two Multipath scripts and the instruction in `docs/installing-skills.md` to run a self-test
   after installing. It checks a stable fixture is accepted, that moving / short-window /
