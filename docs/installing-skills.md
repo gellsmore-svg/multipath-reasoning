@@ -71,6 +71,7 @@ Kiro-specific directory names vary by version; do not invent a path. Prefer the 
 ```bash
 python3 skill/scripts/validate_state.py --self-test
 python3 skill/scripts/project_state_view.py --self-test
+python3 recursive-confidence-loop/scripts/vector_stability.py --self-test
 python3 recursive-confidence-loop/scripts/vector_stability.py path/to/state.json
 ```
 

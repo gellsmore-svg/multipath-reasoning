@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import subprocess
 import sys
+import shutil
 import tempfile
 import unittest
 from pathlib import Path
@@ -240,6 +241,31 @@ class ScriptTests(unittest.TestCase):
         self.assertIn("File-writing hosts", text)
         self.assertIn("Return-markdown hosts", text)
         self.assertIn("parent** writes", text.lower())
+
+    def test_vector_stability_self_test(self) -> None:
+        proc = _run(str(RECURSIVE_SCRIPTS / "vector_stability.py"), "--self-test")
+        self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+        self.assertIn("SELF-TEST PASSED", proc.stdout)
+
+    def test_vector_stability_self_test_is_not_vacuous(self) -> None:
+        """A self-test that cannot fail certifies nothing. Sabotage the delta
+        check and confirm the self-test notices."""
+        src = (RECURSIVE_SCRIPTS / "vector_stability.py").read_text(encoding="utf-8")
+        self.assertIn("if delta > epsilon:", src)
+        with tempfile.TemporaryDirectory() as td:
+            skill = Path(td) / "recursive-confidence-loop"
+            (skill / "scripts").mkdir(parents=True)
+            shutil.copy2(RECURSIVE_SCRIPTS.parent / "SKILL.md", skill / "SKILL.md")
+            broken = skill / "scripts" / "vector_stability.py"
+            broken.write_text(src.replace("if delta > epsilon:", "if delta > 999:", 1),
+                              encoding="utf-8")
+            proc = _run(str(broken), "--self-test")
+            self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
+            self.assertIn("moving fixture accepted as stable", proc.stdout)
+
+    def test_vector_stability_requires_an_argument(self) -> None:
+        proc = _run(str(RECURSIVE_SCRIPTS / "vector_stability.py"))
+        self.assertEqual(proc.returncode, 2, proc.stdout + proc.stderr)
 
     def test_recursive_confidence_loop_stability(self) -> None:
         state = {

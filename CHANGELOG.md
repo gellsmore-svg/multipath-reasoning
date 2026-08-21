@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+- `recursive-confidence-loop/scripts/vector_stability.py` gains `--self-test`, matching the
+  two Multipath scripts and the instruction in `docs/installing-skills.md` to run a self-test
+  after installing. It checks a stable fixture is accepted, that moving / short-window /
+  out-of-range / bad-polarity / too-few-dimension / target-without-target fixtures are
+  rejected, that `material_change` and `external_evidence_needed` block stabilization, and
+  that the installed skill tree carries its required concepts.
+- A test asserts the new self-test is **not vacuous**: it sabotages the epsilon comparison
+  and requires the self-test to notice. A check that cannot fail certifies nothing.
+
 ### External audit — six of seven claims failed
 
 Two frontier models from other vendors (Codex, Grok) audited the repository's own claims,
